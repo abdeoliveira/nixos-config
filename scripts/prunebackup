@@ -1,0 +1,104 @@
+#!/usr/bin/env ruby
+require 'date'
+
+path = ARGV[0]
+maxd = ARGV[1]
+force = ARGV[2]
+
+if maxd.nil? then maxd = 2000 end
+maxd = maxd.to_i
+
+def calendar
+  now = Time.new.strftime "%Y-%m-%d"
+  date_from  = Date.parse('2020-01-01')
+  date_to    = Date.parse(now)
+  return (date_from..date_to).map(&:to_s)
+end
+
+if path.include? "backups/"
+  list = (Dir["#{path}*_*"]).sort
+elsif path.include? "backups"
+  list = (Dir["#{path}/*_*"]).sort
+else
+  puts "Missing a 'backups/' foder."
+  puts "Do you mean '#{path}/backups/' perhaps?"
+  puts "ABORTED."
+  abort
+end
+
+keep_year={}
+keep_month={}
+keep_day={}
+keep_week={}
+keep_all=[]
+keep_list=[]
+list.each do |f|
+  folder      = f.split("backups/").last
+  bkptime     = folder.split("_")
+  ymd         = bkptime[0].split(".")
+  year        = ymd[0]
+  month       = ymd[1]
+  day         = ymd[2]
+  week        = Date.new(year.to_i,month.to_i,day.to_i).cweek
+  folder_date = "#{year}-#{month}-#{day}"
+  elapsed     = calendar.reverse.index(folder_date)
+  #------Building keep list ------
+  calendar.each do |c|
+    if c == folder_date 
+      if elapsed <= maxd then keep_year[year] = f end
+      if elapsed <= 365 and Time.now.year != year and elapsed <= maxd
+          keep_month[month] = f 
+      end
+      if elapsed <= 30 and Time.now.month != month and elapsed <= maxd
+        keep_week[week] = f 
+      end
+      if elapsed < 7 and elapsed <= maxd then keep_day[day] = f end
+      if elapsed < 1 then keep_all << f end
+    end
+  end
+  #--------------------------------
+end
+label=Hash.new("")
+  keep_year.each do |k,v|
+    label[v]='(yearly)' + label[v]
+    keep_list << v
+  end
+  keep_month.each do |k,v|
+    label[v]='(monthly)' + label[v]
+    keep_list << v
+  end
+  keep_week.each do |k,v|
+    label[v]='(weekly)' + label[v]
+    keep_list << v
+  end
+  keep_day.each do |k,v|
+    label[v]='(daily)' + label[v]
+    keep_list << v
+  end
+  keep_all.each do |v|
+    label[v]='(all)' + label[v]
+    keep_list << v
+  end
+#======= LISTS KEEP LIST ============  
+puts " "
+puts "-----PRUNING SNAPSHOTS-----"
+puts "Keeping snapshots up to #{maxd} days old"
+  keep_list.uniq.sort.each do |v|
+    puts "Keeping: #{v.split("backups/").last} #{label[v]}"
+  end
+#==CROSSING FINGERS AND HERE WE GO!===
+delete_list = list - keep_list.uniq
+alert = false
+if delete_list.length > 3 and not force 
+  alert = true
+  puts "Too much deletion (#{delete_list.length})! ABORTING."
+  puts "You must delete folders manually."
+  puts "The deletion list below is just for conference."
+  puts "NOTHING WILL BE DELETED."
+end
+delete_list.each do |del|
+  puts "Pruning: #{del.split("backups/").last}"
+  unless alert then `rm -rf #{del}` end
+end
+puts "Done."
+#=====================================

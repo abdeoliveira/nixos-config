@@ -1,0 +1,80 @@
+@define-color colorbase #FFFFFF;
+
+* {
+font-family: "JetBrainsMono Nerd Font";
+font-weight: bold;
+font-size: 15px;
+min-height: 15px;
+font-feature-settings: '"zero", "ss01", "ss02", "ss03", "ss04", "ss05", "cv31"';
+padding: 0px;
+}
+
+window#waybar {
+    background: @theme_base_color;
+    background: alpha(@borders, 0.60);
+    border-radius: 2px;
+    color: @theme_text_color;
+}
+
+/* FANCIER WORKSPACES (USED IN HYPRLAND)
+
+#workspaces button {
+	color: @colorbase;
+	background: alpha(@colorbase,0.2);
+	padding: 0px 3px;
+	border-radius: 15px;
+	opacity: 0.4;
+	transition: all 0.3s cubic-bezier(.55,-0.68,.48,1.682);
+}
+
+#workspaces button.active {
+	opacity: 1.0;
+	padding: 0px 3px;
+	border-radius: 15px;
+	min-width: 30px;
+	transition: all 0.3s cubic-bezier(.55,-0.68,.48,1.682);
+}
+*/
+
+tooltip {
+	border-radius: 6px;
+}
+
+#backlight,
+#battery,
+#clock,
+#cpu,
+#disk,
+#memory,
+#custom-simplecron,
+#custom-gcalcli,
+#custom-vpn,
+#custom-netspeed,
+#custom-wifipower,
+#custom-externalhd,
+#custom-monitor,
+#custom-separator,
+#pulseaudio{
+	opacity:0.8;
+	color:@colorbase;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-right: 4px;
+	padding-left: 4px;
+}
+ 
+/* -----------------------------------------------------------------------------
+ * Module styles
+ * -------------------------------------------------------------------------- */
+
+#battery.critical:not(.charging) {
+    background: purple;
+    color: @colorbase;
+    /*animation: blink 0.5s linear infinite;
+    animation-name: blink;
+    animation-duration: 1.0s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;*/
+}
+

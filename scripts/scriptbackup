@@ -1,0 +1,54 @@
+#!/bin/bash
+#====================
+src=$1
+dest=$2
+filters=$3
+maxd=$4
+force=$5
+prunescript='/home/oliveira/.local/bin/prunebackup'
+lockfile="$dest/lock-rsync-backups"
+#====================
+if [[ -f $lockfile ]];then
+	echo "ABORTING: Another backup instance is running."
+	exit 1
+fi
+#-------------------
+if [[ ! -d $dest ]]; then
+	echo "ABORTING: '$dest' not found." 
+	exit 2
+fi
+#-------------------
+if [[ $dest != *"backups" ]];then
+	echo "ABORTING: Destination folder's name must be 'backups'."
+	echo "Example: '/path/to/dest/backups'"
+	exit 3
+fi
+#-------------------
+func () {
+  	if [ $1 -ne 0 ]; then
+		echo "Rsync could not complete the operation."
+		echo "PARTIAL backup only. I will try to resume next time." 
+		rm -f -- $lockfile
+		exit 4
+	else
+		echo "$2 Backup sucessfully completed." 
+		mv $dest/partial $dest/$now
+		echo "Renamed '$dest/partial' to '$dest/$now'" 
+		rm -f -- $dest/lastbackup
+		ln -s $dest/$now $dest/lastbackup
+		$prunescript $dest $maxd $force 
+		rm -f -- $lockfile
+		exit 0
+	fi
+}
+#-------------------
+touch $lockfile
+now=`date +"%Y.%m.%d_%H.%M.%S"`
+if [[ -d $dest/lastbackup ]]; then
+	rsync -avHR --filter=". $filters" \
+		--link-dest=$dest/lastbackup $src $dest/partial 
+	func $? 'INCREMENTAL'
+else
+	rsync -avHR --filter=". $filters" $src $dest/partial 
+	func $? 'FULL'
+fi

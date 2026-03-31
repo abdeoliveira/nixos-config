@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+scp -P 1003 -r $1 200.239.139.3:/home/tmp/

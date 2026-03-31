@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+BEMENU_CMD = 'bemenu-cli'
+
+password_store_path = File.expand_path(ENV['PASSWORD_STORE_DIR'] || '~/.password-store')
+
+password_files = Dir.glob("#{password_store_path}/**/*.gpg")
+
+# Clean up the file paths to get the password entry names.
+password_list_array = password_files.map do |file|
+  file
+    .delete_prefix("#{password_store_path}/") # Remove the store's path prefix
+    .delete_suffix('.gpg')                   # Remove the .gpg file extension
+end
+
+# Join the array into a single string for bemenu.
+password_list = password_list_array.join("\n")
+
+# 3. Open a pipe to the bemenu command.
+selection = IO.popen(BEMENU_CMD, 'r+') do |pipe|
+  pipe.puts(password_list)
+  pipe.close_write
+  pipe.read.strip
+end
+
+# 4. If the user made a selection, copy the password.
+unless selection.empty?
+  system("pass -c \"#{selection}\"")
+else
+  puts "No selection made."
+end

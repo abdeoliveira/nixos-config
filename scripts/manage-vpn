@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Define variables
+VPN_CONF="/home/oliveira/.config/openvpn/vpnufop.conf"
+PID_FILE="/tmp/openvpn-ufop.pid"
+
+# Check for a command-line argument
+case "$1" in
+    start)
+        # Check if the VPN is already running
+        if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+            echo "OpenVPN is already running."
+            exit 1
+        fi
+
+        # Read the password from standard input
+        read -r KEYFILE
+
+        # Start OpenVPN using the provided password
+        openvpn --config "$VPN_CONF" --auth-user-pass $KEYFILE --daemon --writepid $PID_FILE
+	rm $KEYFILE
+
+        # Wait and set DNS
+        # sleep 3
+        echo "nameserver 8.8.8.8" | resolvconf -a tun0
+
+        echo "OpenVPN started."
+        ;;
+    stop)
+        # Check if the VPN is running
+        if [ ! -f "$PID_FILE" ]; then
+            echo "OpenVPN is not running."
+            exit 1
+        fi
+
+        PID=$(cat "$PID_FILE")
+        
+        # Attempt a graceful shutdown
+        kill "$PID"
+
+        # Optional forceful kill logic can remain here
+        # sleep 2 ...
+
+        echo "OpenVPN stopped."
+        ;;
+esac
+

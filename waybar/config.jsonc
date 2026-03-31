@@ -1,0 +1,34 @@
+{
+"include": "~/.config/waybar/modules",
+"ipc":false,
+"layer": "top",
+"exclusive": true,
+"passthrough": false,
+"position": "top",
+"spacing": 3,
+"fixed-center": true,
+"margin-top": 1,
+//"margin-left": 8,
+//"margin-right": 8,
+
+"modules-left": [
+	"custom/gcalcli",
+	"custom/simplecron",
+	"custom/externalhd"
+	],
+
+"modules-center": [
+	"niri/workspaces"
+	], 
+
+"modules-right": [
+	"custom/netspeed",
+	"custom/vpn",
+	"custom/wifipower",
+	"group/motherboard",
+	"group/audio",
+	"custom/monitor",
+	"group/laptop",
+	"clock"
+	]
+}

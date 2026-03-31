@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+
+delta = ARGV[1].to_i
+
+def current(m)
+  `ddcutil --display 1 getvcp #{m}`.split(':').last.scan(/\d+/).map(&:to_i).min
+end
+
+def change(m, new_value)
+  `ddcutil --display 1 setvcp #{m} #{new_value}`
+end
+
+if ARGV[0] == '-b'
+  m = 10 
+  cache_file = '/tmp/monitor_current_brightness' 
+end
+
+if ARGV[0] == '-c'
+  m = 12
+  cache_file = '/tmp/monitor_current_contrast'
+end
+
+new = current(m) + delta
+change(m, new) if new <= 100
+
+new = 100 if new > 100
+
+File.write(cache_file, new)

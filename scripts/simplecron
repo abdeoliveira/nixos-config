@@ -1,0 +1,136 @@
+#!/usr/bin/env ruby
+
+home = ENV['HOME']
+
+cache_folder = "#{home}/.cache/simplecron"
+config_folder = "#{home}/.config/simplecron"
+
+`mkdir -p #{cache_folder}`
+
+config_file = "#{config_folder}/config"
+lock_file = "/tmp/#{ENV['USER']}_simplecron.lck"
+
+require 'date'
+
+def read_data(control_file)
+  time_success = 0
+  time_try = 0
+  fail_count = 0
+  time_success, time_try, fail_count = File.read(control_file).split if File.file? control_file
+  return time_success.to_i, time_try.to_i, fail_count.to_i
+end
+
+=begin
+def convert_to_seconds(period)
+  value = 60 if period.to_i < 60
+  value = period.delete('m').to_i * 60     if period.include?('m')
+  value = period.delete('h').to_i * 3600   if period.include?('h')
+  value = period.delete('d').to_i * 86400  if period.include?('d')
+  value = period.delete('w').to_i * 604800 if period.include?('w')
+  return value
+end
+=end
+
+def convert_to_seconds(period)
+  # First, remove any leading/trailing whitespace
+  p = period.strip
+
+  if p.end_with?('m')
+    return p.delete('m').to_i * 60
+  elsif p.end_with?('h')
+    return p.delete('h').to_i * 3600
+  elsif p.end_with?('d')
+    return p.delete('d').to_i * 86400
+  elsif p.end_with?('w')
+    return p.delete('w').to_i * 604800
+  else
+    # Handle periods specified purely in seconds (e.g., "90")
+    seconds = p.to_i
+    # Enforce a minimum of 60 seconds
+    return seconds < 60 ? 60 : seconds
+  end
+end
+
+def delay(fail_count)
+  value = 600
+  value = 3600 if fail_count > 6
+  return value
+end
+
+def time_human
+  Time.now.strftime "%Y-%m-%d %H:%M:%S"
+end
+
+def line(message)
+  '-' * (message.length - 1) + "\n"
+end
+
+def is_correct?(mode)
+  value = false
+  value = true if mode == 'clock' or mode == 'uptime'
+  return value
+end
+
+  exit 0 unless File.file? config_file
+
+  exit 0 if File.file? lock_file
+
+  File.new(lock_file, 'w')
+  
+  task_list = File.readlines(config_file)
+  task_list.reject! { |l| l.include?('#') }
+  
+  task_list.each do |l|
+    job = l.split(',')
+    
+    command = job[3]&.strip
+    next if command.nil?
+    mode = job[2].strip
+    period = convert_to_seconds(job[1])
+    control = job[0].strip
+
+    abort "Error in config file: field 'mode'." unless is_correct?(mode)
+    
+    time_now = DateTime.now.strftime('%s').to_i if mode == 'clock'
+    time_now = Process.clock_gettime(Process::CLOCK_MONOTONIC).to_i if mode == 'uptime'
+
+    control_file = "#{cache_folder}/#{control}.#{mode}"
+    log_file  = "#{cache_folder}/#{control}.log"
+    code_file = "#{cache_folder}/#{control}.code"
+
+    time_success, time_try, fail_count = read_data(control_file)
+   
+    if fail_count == 0 
+      time_next = time_success + period
+    else
+      time_next = time_try + delay(fail_count)
+    end
+
+    time_next = 300 if time_now < time_success # if 'mode = uptime' and after boot.
+    time_next = 0   if time_try == 0 # if 'mode = uptime' and '.uptime' file absent.
+
+    if time_now >= time_next
+      File.write(log_file, ":: START: #{time_human}\n", mode: 'a')
+      exit_code = `#{command} >> #{log_file} 2>&1; echo $?`.to_i
+       
+      if exit_code == 0
+        time_stamp = "#{time_now} #{time_now}"
+        fail_count = 0
+        message = ":: FINISH: #{time_human}. Exit code: 0.\n"
+        message += line(message)
+      else
+        time_stamp = "#{time_success} #{time_now}"
+        fail_count += 1
+        message = ":: FINISH: #{time_human}. Exit code: #{exit_code}. "
+        message += "Next attempt in #{delay(fail_count)/60} min.\n"
+        message += line(message)
+      end 
+
+      File.write(log_file, message, mode: 'a') 
+      File.write(control_file, "#{time_stamp} #{fail_count}", mode: 'w')
+      File.write(code_file, exit_code, mode: 'w')
+
+    end
+  end
+
+  File.delete(lock_file)

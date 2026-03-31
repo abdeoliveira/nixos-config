@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#COLORS COME FROM https://github.com/dracula/bemenu/blob/master/bemenu-dracula
+export BEMENU_OPTS="--tb '#6272a4'\
+ 		--tf '#f8f8f2'\
+ 		--fb '#282a36'\
+ 		--ff '#f8f8f2'\
+ 		--nb '#282a36'\
+ 		--nf '#6272a4'\
+ 		--hb '#44475a'\
+ 		--hf '#50fa7b'\
+ 		--sb '#44475a'\
+ 		--sf '#50fa7b'\
+ 		--scb '#282a36'\
+ 		--scf '#ff79c6' \
+		--center \
+		--grab \
+		--no-overlap \
+		--list 10 \
+		--border 10 \
+		--bdr '#1c1c1c' \
+		--border-radius 10 \
+		--line-height 20 \
+		--width-factor 0.4 \
+		--fn 'JetBrainsMono NFP Bold 12'"
+
+bemenu$1

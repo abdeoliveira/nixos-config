@@ -1,0 +1,207 @@
+{
+
+"niri/workspaces": {
+	"format": "{icon}",
+	"format-icons": {
+		// Icons by state
+		"active": "",
+		"default": ""
+	}
+},
+
+"hyprland/workspaces": {
+	"active-only": false,
+	"all-outputs": true,
+	"format": "{icon}",
+	"show-special": false,
+},
+
+// GROUP
+"group/motherboard": {
+	"orientation": "horizontal",
+	"modules": [
+		"cpu",
+		"memory",
+		"disk",
+	]
+},
+"group/laptop": {
+	"orientation": "horizontal",
+	"modules": [
+		"backlight",
+		"battery",
+	]
+},
+"group/audio": {
+	"orientation": "horizontal",
+	"modules": [
+		"pulseaudio",
+		"pulseaudio#microphone",
+	]
+},
+
+//"backlight": {
+       // "device": "acpi_video1",
+  //      "format": "{icon} {percent}%",
+    //    "format-icons": ["", "", "", "", "", "", "", "", ""]
+    //},
+
+"backlight": {
+        // "device": "acpi_video1",
+        "format": "| {icon} {percent}",
+        "format-icons": ["󰃟"]
+    },
+
+"battery": {
+	"interval": 5,
+	"align": 0,
+	"rotate": 0,
+	"full-at": 98,
+	"design-capacity": false,
+	"states": {
+		"critical": 20
+	},
+	"format": "| {icon} {capacity}",
+	"format-charging": "|  {capacity}",
+	"format-plugged": "| 󱘖 {capacity}",
+	"format-full": "| {icon} Full",
+	"format-icons": ["󰂎","󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"],
+},
+
+"clock": {
+	"interval": 1,
+	"format": "| {:%d/%m %a %H:%M}", 
+	"tooltip-format": "<tt><small>{calendar}</small></tt>",
+	"calendar": {
+		"mode": "year",
+		"mode-mon-col": 3,
+		"weeks-pos": "right",
+		"on-scroll": 1,
+		"format": {
+			"months": "<span color='#ffead3'><b>{}</b></span>",
+			"days": "<span color='#ecc6d9'><b>{}</b></span>",
+			"weeks": "<span color='#99ffdd'><b>W{}</b></span>",
+			"weekdays": "<span color='#ffcc66'><b>{}</b></span>",
+			"today": "<span color='#ff6699'><b><u>{}</u></b></span>"
+		}
+	}
+},
+
+
+"cpu": {
+	"format": "| 󰾆 {usage}",
+	"interval": 5,
+},
+
+"disk": {
+	"interval": 30,
+	"path": "/",
+	"format": "| 󰋊 {percentage_used}",
+},
+
+"idle_inhibitor": {
+	"format": "{icon}",
+	"format-icons": {
+		"activated": "󰅶 ",
+		"deactivated": "󰒲 ",
+	}
+},
+
+"memory": {
+	"interval": 10,
+	//"format": "󰾆 {used:0.1f}G",
+	"format": "| 󰍛 {percentage}",
+},
+
+"pulseaudio": {
+	"format": "| {icon} {volume}",
+	"format-bluetooth": "{icon} 󰂰 {volume}%",
+	"format-muted": "| 󰖁",
+	"format-icons": {
+		"headphone": "",
+		"hands-free": "",
+		"headset": "",
+		"phone": "",
+		"portable": "",
+		"car": "",
+		"default": ["󰕾"],
+		"ignored-sinks": ["Easy Effects Sink"],
+	},
+},
+
+"pulseaudio#microphone": {
+	"format": "| {format_source}",
+	"format-source": " {volume}",
+	"format-source-muted": "",
+	"on-scroll-up": "~/.config/hypr/scripts/Volume.sh --mic-inc",
+	"on-scroll-down": "~/.config/hypr/scripts/Volume.sh --mic-dec",
+	"tooltip-format": "{source_desc} | {source_volume}%",
+	"scroll-step": 5,
+},
+
+"custom/netspeed": {
+	"format": "{}",
+	"interval": 1,
+	"exec": "~/.config/waybar/scripts/netspeed.rb", 
+},
+
+"custom/monitor": {
+	"format": "{}",
+	"interval": 1,
+	"exec": "~/.config/waybar/scripts/monitor_screen.rb", 
+},
+
+"custom/weather": {
+	"format": "{}",
+	"interval": 600,
+	"exec": "~/.config/hypr/scripts/weather.rb", 
+},
+
+
+"custom/wifipower": {
+	"format": "{}",
+	"interval": 10,
+	"exec": "~/.config/waybar/scripts/wifipower.rb", 
+},
+
+"custom/vpn": {
+	"interval":10,
+	"format":"{}",
+	"exec": "~/.config/waybar/scripts/vpn.rb", 
+	"tooltip": false
+},
+
+"custom/simplecron": {
+	"interval":60,
+	"format":"{}",
+	"exec": "~/.config/waybar/scripts/simplecron-alert.rb", 
+	"tooltip": false
+},
+
+"custom/gcalcli": {
+        "interval":60,
+	"format":"{}",
+	"exec": "~/.config/waybar/scripts/gcalcli-next-event.rb",
+	"tooltip": false
+},
+
+"custom/externalhd": {
+        "interval":30,
+	"format":"{}",
+	"exec": "~/.config/waybar/scripts/check-external-hd.rb",
+	"tooltip": false
+},
+
+"custom/separator": {
+    "format": " | ",
+    "tooltip": false
+},
+
+"custom/workspaces": {
+        "exec": "$HOME/.config/waybar/scripts/niri-workspaces.sh \"$WAYBAR_OUTPUT_NAME\"",
+        "interval": 1,
+        "signal": 8
+},
+
+
+}

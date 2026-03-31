@@ -1,0 +1,96 @@
+#!/bin/bash
+#===========================================
+ME=restic-$PROFILE
+RESTOREDIR=/tmp/restic-restored-$PROFILE
+MNTPOINT=/tmp/restic-mount-$PROFILE
+#============================================
+if [[ $1 == 'help' || $1 == '' ]];then
+	echo "---------------------------------"
+	echo "USAGE: $ME"
+	#echo "		backup [TAG]"
+	echo "		backup BACKUP-DIR [TAG]"
+	echo "		check"
+	echo "		mount"
+	echo "		unlock" 
+	echo "		prune TAG"
+	echo "		find SNAPSHOT PATTERN"
+	echo "		list [SNAPSHOT] [PATTERN]"
+	echo "		delete 'SNAPSHOT-1 SNAPSHOT-2...'"
+        echo "		restore SNAPSHOT [PATTERN] [DESTINATION]"
+	echo "		check-download [FRACTION]*"
+	echo "----------------------------------"
+	echo "*FRACTION examples: 10%, 1/10, 2G (default is 100%)."
+	exit 0
+fi
+#----------------------------------------------
+if [[ -f $LOCKFILE ]];then
+	echo "ABORTING: Another Restic instance is running."
+	exit 1
+fi
+#---------------------------------------------
+touch $LOCKFILE
+if   [[ $1 == 'backup' ]];then
+	restic backup $2 $EXCLUDES --tag="$3"
+#elif [[ $1 == 'backup' ]];then
+#	restic backup $BKPDIR $EXCLUDES $TAG --tag="$2" #--ignore-ctime
+elif [[ $1 == 'list' ]];then
+	if [[ $2 == '' ]];then
+		restic snapshots
+	else
+		restic ls $2 $3 
+	fi
+	# -- START GEMINI ---
+elif [[ $1 == 'restore' ]];then
+    # Use $4 if provided, otherwise fall back to the default $RESTOREDIR
+    TARGET_DIR=${4:-$RESTOREDIR}
+
+    # Safety: Only wipe the directory if it's the default temporary one
+    if [[ "$TARGET_DIR" == "$RESTOREDIR" ]]; then
+        if [[ -d "$TARGET_DIR" ]]; then
+            rm -rf "$TARGET_DIR"/*
+        else
+            mkdir -p "$TARGET_DIR"
+        fi
+    else
+        # For custom destinations, just ensure the folder exists
+        mkdir -p "$TARGET_DIR"
+    fi
+
+    if [[ $3 == '' ]]; then
+        restic restore "$2" -t "$TARGET_DIR"
+    else
+        restic restore "$2" --include "$3" -t "$TARGET_DIR"
+    fi
+	#--- END GEMINI ---
+elif [[ $1 == 'check-simple' ]];then
+	restic check
+elif [[ $1 == 'check-download' ]];then
+	if [[ $2 == '' ]];then
+		restic check --read-data
+	else
+		restic check --read-data-subset=$2
+	fi
+elif [[ $1 == 'prune' ]];then
+	restic forget \
+		--group-by tags \
+		--keep-daily 7 \
+		--keep-weekly 4 \
+		--keep-monthly 6 \
+		--keep-yearly 1 \
+		--tag=$2 --prune
+elif [[ $1 == 'delete' ]];then
+	restic forget $2 --prune
+elif [[ $1 == 'unlock' ]];then
+	restic unlock
+elif [[ $1 == 'mount' ]];then
+	mkdir -p $MNTPOINT
+	restic mount $MNTPOINT
+elif [[ $1 == 'find' ]];then
+	restic find -s $2 $3
+else
+	restic $@
+fi
+CODE=$?
+rm $LOCKFILE
+unset KEY
+exit $CODE

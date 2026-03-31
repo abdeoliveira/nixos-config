@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -e
+uuid=$EXTERNAL_HD_UUID
+mntpoint=/tmp/external-hd
+key=$(pass PASSWORDS/external-hd)
+luksmap=crypto_$uuid
+cmd=$1
+#=================================
+disk=/dev/disk/by-uuid/$uuid
+ls $disk > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+		if [[ $cmd == "mount" ]]; then
+			mkdir -p $mntpoint
+			echo $key | sudo cryptsetup open $disk $luksmap
+			sudo mount /dev/mapper/$luksmap $mntpoint
+		elif [[ $cmd == "umount" ]];then
+			sudo umount $mntpoint
+			sudo cryptsetup close $luksmap
+			rm -rf $mntpoint
+		else
+			echo "command '$cmd' not recognized."
+		fi
+fi
+
