@@ -10,8 +10,10 @@ let
   allKeys = [ user system ];
 in
 {
-  "wifi-psk.age".publicKeys = allKeys;
-  "vpn-key.age".publicKeys = allKeys;
-  "restic-pw.age".publicKeys = allKeys;
-  "rclone-config.age".publicKeys = allKeys;
+  "secrets/wifi-psk.age".publicKeys = allKeys;
+  "secrets/vpn-key.age".publicKeys = allKeys;
+  "secrets/restic-pw.age".publicKeys = allKeys;
+  "secrets/rclone-config.age".publicKeys = allKeys;
+  "secrets/ssh_id_rsa.age".publicKeys = allKeys;
+  "secrets/external-hd-key.age".publicKeys = allKeys;
 }

@@ -18,7 +18,6 @@ with pkgs; [
   xsane
   xournalpp
   yt-dlp
-  ccrypt
   bc
   speedtest-cli
   lyx

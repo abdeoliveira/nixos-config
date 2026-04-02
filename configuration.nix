@@ -53,28 +53,75 @@
   '';
 
 # --- Networking ---
-# --- Networking ---
 networking.wireless = {
   enable = true;
+  userControlled.enable = true;
   secretsFile = config.age.secrets.wifi-psk.path;
-
+#--------
   networks = {
     "DecoM5" = {
-      # 'ext:' tells the system to look for the variable name in your secretsFile
-      pskRaw = "ext:psk_home"; 
-    };
+     pskRaw = "ext:psk_home"; 
+   };
+#---------   
     "NANO" = {
       pskRaw = "ext:psk_office";
     };
+#---------    
+    "Galaxy-A15" = {
+      pskRaw = "ext:psk_phone";
+    };
+#---------    
   };
 };
 
 # 2. Secret Configuration
+age.secrets.external-hd-key = {
+  file = ./secrets/external-hd-key.age;
+  owner = "oliveira";
+  mode  = "0400";
+};
+
 age.secrets.wifi-psk = {
-  file = ./wifi-psk.age;
+  file = ./secrets/wifi-psk.age;
   owner = "root";
   group = "root";
   mode = "0440";
+};
+
+age.secrets.restic-pw = {
+  file = ./secrets/restic-pw.age;
+  owner = "oliveira"; # So your user script can read it
+  mode = "0400";      # Strictly read-only for you
+};
+
+age.secrets.vpn-key = {
+  file = ./secrets/vpn-key.age;
+  owner = "root"; # OpenVPN runs as root to manage the tun0 interface
+  mode = "0400";
+};
+
+age.secrets.rclone-config = {
+  file = ./secrets/rclone-config.age;
+  owner = "oliveira";
+  mode = "0600"; # Strictly for you
+};
+
+age.secrets.ssh_id_rsa = {
+  file = ./secrets/ssh_id_rsa.age;
+  path = "/home/oliveira/.ssh/id_rsa";
+  owner = "oliveira";
+  mode  = "0600";
+};
+
+
+#---- Rclone special copy to a writable location
+system.activationScripts.rclone-config = {
+  deps = [ "agenix" ];
+  text = ''
+    cp /run/agenix/rclone-config /home/oliveira/.config/rclone/rclone.conf
+    chown oliveira:users /home/oliveira/.config/rclone/rclone.conf
+    chmod 0600 /home/oliveira/.config/rclone/rclone.conf
+  '';
 };
 
 # --- ufupd ---
@@ -169,6 +216,7 @@ environment.systemPackages = (import ./pkgs/system-pkgs.nix) { inherit pkgs agen
     EDITOR = "nvim";
     VISUAL = "nvim";
     TERMINAL = "alacritty";
+    #RCLONE_CONFIG = "/run/agenix/rclone-config";
   };
 
   # --- System Services ---

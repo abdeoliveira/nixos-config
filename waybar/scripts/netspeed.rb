@@ -16,7 +16,8 @@ def get_wifi_device_name
   wifi_line&.split&.last
 end
 
-iface = get_wifi_device_name
+#iface = get_wifi_device_name
+iface = `iw dev | grep Interface`.split.last
 
 exit 0 unless iface
 

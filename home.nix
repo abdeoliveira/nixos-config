@@ -127,7 +127,7 @@ programs.neovim = {
       bc = "bc -lq";
       pry = "pry 2>/dev/null";
       xmgrace = "qtgrace 2>/dev/null";
-      nrs = "sudo nixos-rebuild switch --flake /etc/nixos#nixos";
+      nrs = "sudo nixos-rebuild switch --flake /home/oliveira/.nixos-config";
       hm-reload = "unset __HM_SESS_VARS_SOURCED && source /etc/profiles/per-user/oliveira/etc/profile.d/hm-session-vars.sh";
     };
 
@@ -187,8 +187,11 @@ programs.neovim = {
     ".config/alacritty/alacritty.toml".source = ./alacritty/alacritty.toml;
     ".config/swaylock/config".source = ./swaylock/config;
     ".config/simplecron/config".source = ./simplecron/config;
-    #".password-store".source = ./password-store;
     ".config/openvpn/vpnufop.conf".source = ./openvpn/vpnufop.ovpn;
     ".config/waybar".source = ./waybar;
+    ".config/wallpaper".source = ./wallpaper;
+    ".ssh/id_rsa.pub".source  = ./ssh/id_rsa.pub;
+    #".ssh/known_hosts".source = ./ssh/known_hosts;
+    ".ssh/config".source      = ./ssh/config;
   };
 }

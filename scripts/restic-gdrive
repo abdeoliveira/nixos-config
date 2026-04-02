@@ -11,7 +11,8 @@ EXCLUDES="--exclude=$HOME/.local/share/Trash \
 	--exclude=$HOME/Downloads"
 TAG="--tag=NOTEBOOK"
 #export PASSWORD_STORE_DIR=/home/oliveira/Sync/password-store
-export RESTIC_PASSWORD=$(pass PASSWORDS/restic)
+#export RESTIC_PASSWORD=$(pass PASSWORDS/restic)
+export RESTIC_PASSWORD_FILE=/run/agenix/restic-pw
 export RESTIC_REPOSITORY=rclone:ufop:restic
 #=============================================
 ping -c 1 8.8.8.8 > /dev/null 2>&1 

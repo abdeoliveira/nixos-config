@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
 set -e
-uuid=$EXTERNAL_HD_UUID
-mntpoint=/tmp/external-hd
-key=$(pass PASSWORDS/external-hd)
-luksmap=crypto_$uuid
-cmd=$1
-#=================================
-disk=/dev/disk/by-uuid/$uuid
-ls $disk > /dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-		if [[ $cmd == "mount" ]]; then
-			mkdir -p $mntpoint
-			echo $key | sudo cryptsetup open $disk $luksmap
-			sudo mount /dev/mapper/$luksmap $mntpoint
-		elif [[ $cmd == "umount" ]];then
-			sudo umount $mntpoint
-			sudo cryptsetup close $luksmap
-			rm -rf $mntpoint
-		else
-			echo "command '$cmd' not recognized."
-		fi
+
+UUID=${EXTERNAL_HD_UUID:?EXTERNAL_HD_UUID is not set}
+MNTPOINT=/tmp/external-hd
+KEY_FILE=/run/agenix/external-hd-key
+LUKSMAP=crypto_$UUID
+CMD=$1
+
+DISK=/dev/disk/by-uuid/$UUID
+
+if [ ! -e "$DISK" ]; then
+  echo "Disk $DISK not found."
+  exit 1
 fi
 
+case "$CMD" in
+  mount)
+    mkdir -p "$MNTPOINT"
+    sudo cryptsetup open --key-file "$KEY_FILE" "$DISK" "$LUKSMAP"
+    sudo mount /dev/mapper/$LUKSMAP "$MNTPOINT"
+    ;;
+  umount)
+    sudo umount "$MNTPOINT"
+    sudo cryptsetup close "$LUKSMAP"
+    rm -rf "$MNTPOINT"
+    ;;
+  *)
+    echo "command '$CMD' not recognized."
+    exit 1
+    ;;
+esac

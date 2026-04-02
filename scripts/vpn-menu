@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
-
-# This script generates the menu entries and executes the chosen command.
-# It uses your existing bemenu-cli script to apply the correct visual theme.
+# Your bemenu/rofi/wofi script
 
 CHOICE=$(printf "VPN: Start\nVPN: Stop" | bemenu-cli)
 
 case "$CHOICE" in
     "VPN: Start")
-        # Get the password *without* sudo
-        PASS=$(pass "PASSWORDS/ufopvpn")
-	USER=$(pass "NOTES/cpf")
-	KEYFILE="/tmp/vpntmp.key"
-	echo -e "$USER\n$PASS" > $KEYFILE
-        
-        # Pipe the password into the manage-vpn script
-        echo "$KEYFILE" | sudo manage-vpn start &
+        sudo manage-vpn start &
         ;;
     "VPN: Stop")
         sudo manage-vpn stop &

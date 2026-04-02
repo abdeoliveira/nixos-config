@@ -52,7 +52,7 @@ environment {
 
 //spawn-at-startup "swww-daemon"
 //spawn-at-startup "swww img ~/.wallpaper"
-spawn-at-startup "sh" "-c" "swww-daemon & sleep 1 && swww img ~/.wallpaper"
+spawn-at-startup "sh" "-c" "swww-daemon & sleep 1 && swww img ~/.config/wallpaper"
 spawn-at-startup "waybar"
 spawn-at-startup "gammastep"
 spawn-at-startup "~/.config/waybar/scripts/sleep.sh"
