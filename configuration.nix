@@ -112,7 +112,17 @@ age.secrets.ssh_id_rsa = {
   owner = "oliveira";
   mode  = "0600";
 };
+age.secrets.gcalcli-oauth = {
+  file = ./secrets/gcalcli-oauth.age;
+  owner = "oliveira";
+  mode  = "0600";
+};
 
+age.secrets.gh-hosts = {
+  file = ./secrets/gh-hosts.age;
+  owner = "oliveira";
+  mode  = "0600";
+};
 
 #---- Rclone special copy to a writable location
 system.activationScripts.rclone-config = {
@@ -123,6 +133,29 @@ system.activationScripts.rclone-config = {
     chmod 0600 /home/oliveira/.config/rclone/rclone.conf
   '';
 };
+
+#---gcalcli special copy to a writable location
+system.activationScripts.gcalcli-oauth = {
+  deps = [ "agenix" ];
+  text = ''
+    mkdir -p /home/oliveira/.local/share/gcalcli
+    cp /run/agenix/gcalcli-oauth /home/oliveira/.local/share/gcalcli/oauth
+    chown oliveira:users /home/oliveira/.local/share/gcalcli/oauth
+    chmod 0600 /home/oliveira/.local/share/gcalcli/oauth
+  '';
+};
+
+# --- Github special copy to a writable location
+system.activationScripts.gh-hosts = {
+  deps = [ "agenix" ];
+  text = ''
+    mkdir -p /home/oliveira/.config/gh
+    cp /run/agenix/gh-hosts /home/oliveira/.config/gh/hosts.yml
+    chown oliveira:users /home/oliveira/.config/gh/hosts.yml
+    chmod 0600 /home/oliveira/.config/gh/hosts.yml
+  '';
+};
+
 
 # --- ufupd ---
 services.fwupd.enable = true;

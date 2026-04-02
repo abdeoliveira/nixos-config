@@ -16,4 +16,6 @@ in
   "secrets/rclone-config.age".publicKeys = allKeys;
   "secrets/ssh_id_rsa.age".publicKeys = allKeys;
   "secrets/external-hd-key.age".publicKeys = allKeys;
+  "secrets/gcalcli-oauth.age".publicKeys = allKeys;
+  "secrets/gh-hosts.age".publicKeys = allKeys;
 }
