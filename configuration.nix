@@ -136,6 +136,8 @@ system.activationScripts.rclone-config = {
   deps = [ "agenix" ];
   text = ''
     mkdir -p /home/oliveira/.config/rclone
+    chown oliveira:users /home/oliveira/.config/rclone
+    chmod 0755 /home/oliveira/.config/rclone
     cp /run/agenix/rclone-config /home/oliveira/.config/rclone/rclone.conf
     chown oliveira:users /home/oliveira/.config/rclone/rclone.conf
     chmod 0600 /home/oliveira/.config/rclone/rclone.conf
@@ -147,6 +149,8 @@ system.activationScripts.gcalcli-oauth = {
   deps = [ "agenix" ];
   text = ''
     mkdir -p /home/oliveira/.local/share/gcalcli
+    chown oliveira:users /home/oliveira/.local/share/gcalcli
+    chmod 0755 /home/oliveira/.local/share/gcalcli
     cp /run/agenix/gcalcli-oauth /home/oliveira/.local/share/gcalcli/oauth
     chown oliveira:users /home/oliveira/.local/share/gcalcli/oauth
     chmod 0600 /home/oliveira/.local/share/gcalcli/oauth
@@ -158,12 +162,13 @@ system.activationScripts.gh-hosts = {
   deps = [ "agenix" ];
   text = ''
     mkdir -p /home/oliveira/.config/gh
+    chown oliveira:users /home/oliveira/.config/gh
+    chmod 0755 /home/oliveira/.config/gh
     cp /run/agenix/gh-hosts /home/oliveira/.config/gh/hosts.yml
     chown oliveira:users /home/oliveira/.config/gh/hosts.yml
     chmod 0600 /home/oliveira/.config/gh/hosts.yml
   '';
 };
-
 
 # --- ufupd ---
 services.fwupd.enable = true;
