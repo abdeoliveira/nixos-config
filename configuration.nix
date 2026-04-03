@@ -52,6 +52,12 @@
     KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
   '';
 
+  # -- Create /home/user/profile at bootstrap
+systemd.tmpfiles.rules = [
+  "d /home/oliveira/.local/state/nix/profiles 0755 oliveira users -"
+];
+
+
 # --- Networking ---
 networking.wireless = {
   enable = true;
