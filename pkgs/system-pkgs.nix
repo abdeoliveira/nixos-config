@@ -3,6 +3,9 @@
 with pkgs; [
   # --- System Packages ---
 
+  # For firefox
+    passff-host
+
   # Ruby
   ruby
   rubyPackages.pry   

@@ -29,7 +29,7 @@ with pkgs; [
   ovito
   gh
   libnotify
-  firefox
+  #firefox # currently managed in home.nix
   alacritty
   waybar
   eog
