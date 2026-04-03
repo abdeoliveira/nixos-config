@@ -21,7 +21,7 @@
   nixpkgs.overlays = [
     (self: super: {
       qtgrace = super.callPackage ./pkgs/qtgrace { };
-      vesta = super.callPackage ./pkgs/vesta { };
+      #vesta = super.callPackage ./pkgs/vesta { };
       gtk3-nocsd = super.callPackage ./pkgs/gtk3-nocsd { };
     })
   ];
@@ -106,12 +106,13 @@ age.secrets.rclone-config = {
   mode = "0600"; # Strictly for you
 };
 
-age.secrets.ssh_id_rsa = {
-  file = ./secrets/ssh_id_rsa.age;
-  path = "/home/oliveira/.ssh/id_rsa";
-  owner = "oliveira";
-  mode  = "0600";
-};
+#age.secrets.ssh_id_rsa = {
+#  file = ./secrets/ssh_id_rsa.age;
+#  path = "/home/oliveira/.ssh/id_rsa";
+#  owner = "oliveira";
+#  mode  = "0600";
+#};
+
 age.secrets.gcalcli-oauth = {
   file = ./secrets/gcalcli-oauth.age;
   owner = "oliveira";
@@ -128,6 +129,7 @@ age.secrets.gh-hosts = {
 system.activationScripts.rclone-config = {
   deps = [ "agenix" ];
   text = ''
+    mkdir -p /home/oliveira/.config/rclone
     cp /run/agenix/rclone-config /home/oliveira/.config/rclone/rclone.conf
     chown oliveira:users /home/oliveira/.config/rclone/rclone.conf
     chmod 0600 /home/oliveira/.config/rclone/rclone.conf

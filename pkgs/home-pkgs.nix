@@ -8,6 +8,7 @@ with pkgs; [
   my-scripts
 
   # Standard packages
+  vesta-viewer
   gcalcli
   transmission_4-gtk
   mplayer
