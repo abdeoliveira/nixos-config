@@ -127,6 +127,13 @@ age.secrets.gh-hosts = {
 
 # --- Fix Home Manager Profile Bootstrap ---
 
+system.activationScripts.bootstrap-dirs = {
+  text = ''
+    mkdir -p /home/oliveira/.local/state/nix/profiles
+    chown -R oliveira:users /home/oliveira/.local
+  '';
+};
+
 #---- Rclone special copy to a writable location
 system.activationScripts.rclone-config = {
   deps = [ "agenix" ];
