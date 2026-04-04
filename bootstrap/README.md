@@ -8,9 +8,9 @@
 6. `cp /etc/nixos/hardware-configuration.nix ~/.nixos-config/`
 7. `./temporary-swap.sh`
 8. `cat /etc/ssh/ssh_host_ed25519_key.pub` and update `system=` at `../secrets/secrets.nix`
-8. `./reencrypt-keys.sh`
-11. `cd ~/.nixos-config && git add . && sudo nixos-rebuild switch --flake .`
-12. Import GPG keys for pass
+9. `./reencrypt-keys.sh`
+10. `cd ~/.nixos-config && git add . && sudo nixos-rebuild switch --flake .`
+11. Import GPG keys for pass
 
 ## Optional (but worth checking!)
 1. `vim flake.nix` (check host name, `.nixos`, at `nixosConfigurations.nixos`)
