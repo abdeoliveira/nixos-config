@@ -3,12 +3,12 @@
 with pkgs; [
   # Custom packages
   gtk3-nocsd
-  #vesta
+  vesta
   qtgrace
   my-scripts
 
   # Standard packages
-  vesta-viewer
+  #vesta-viewer # bugged
   gcalcli
   transmission_4-gtk
   mplayer

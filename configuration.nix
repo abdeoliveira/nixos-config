@@ -21,7 +21,7 @@
   nixpkgs.overlays = [
     (self: super: {
       qtgrace = super.callPackage ./pkgs/qtgrace { };
-      #vesta = super.callPackage ./pkgs/vesta { };
+      vesta = super.callPackage ./pkgs/vesta { };
       gtk3-nocsd = super.callPackage ./pkgs/gtk3-nocsd { };
     })
   ];
@@ -51,12 +51,6 @@
   services.udev.extraRules = ''
     KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
   '';
-
-  # -- Create /home/user/profile at bootstrap
-systemd.tmpfiles.rules = [
-  "d /home/oliveira/.local/state/nix/profiles 0755 oliveira users -"
-];
-
 
 # --- Networking ---
 networking.wireless = {
@@ -130,6 +124,8 @@ age.secrets.gh-hosts = {
   owner = "oliveira";
   mode  = "0600";
 };
+
+# --- Fix Home Manager Profile Bootstrap ---
 
 #---- Rclone special copy to a writable location
 system.activationScripts.rclone-config = {
@@ -206,13 +202,6 @@ hardware.sane = {
 time.timeZone = "America/Sao_Paulo";
 i18n.defaultLocale = "en_US.UTF-8";
 
-  # --- Console and X11 Keymaps ---
-#  console.keyMap = "br-abnt2";
-#  services.xserver.xkb = {
-#    layout = "br";
-#    variant = "";
-#  };
-
   users.groups.i2c = {}; # ddcutil
 
   # --- User Accounts ---
@@ -238,15 +227,13 @@ i18n.defaultLocale = "en_US.UTF-8";
     enable = true;
     terminal = "alacritty";
   };
-  services.gvfs.enable = true;   # keep this, Nautilus needs it too
-  services.udisks2.enable = true; # keep this too
+  services.gvfs.enable = true;   
+  services.udisks2.enable = true;
 
   # Allow specific user to run openvpn without password
 security.sudo.extraConfig = ''
-  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/manage-vpn start
-  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/manage-vpn stop
-  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/external-hd-mount mount
-  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/external-hd-mount umount
+  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/manage-vpn
+  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/external-hd-mount
 '';
  
 # -- Fonts ---
