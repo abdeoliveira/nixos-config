@@ -125,6 +125,13 @@ age.secrets.gh-hosts = {
   mode  = "0600";
 };
 
+age.secrets.ssh-config = {
+  file = ./secrets/ssh-config.age;
+  path = "/home/oliveira/.ssh/config";
+  owner = "oliveira";
+  mode  = "0600";
+};
+
 # --- Fix Home Manager Profile Bootstrap ---
 
 #system.activationScripts.bootstrap-dirs = {
@@ -240,7 +247,6 @@ i18n.defaultLocale = "en_US.UTF-8";
   # Allow specific user to run openvpn without password
 security.sudo.extraConfig = ''
   oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/manage-vpn
-  oliveira ALL=(ALL) NOPASSWD: /etc/profiles/per-user/oliveira/bin/external-hd-mount
 '';
  
 # -- Fonts ---

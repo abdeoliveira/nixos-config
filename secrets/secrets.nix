@@ -18,4 +18,5 @@ in
   "secrets/external-hd-key.age".publicKeys = allKeys;
   "secrets/gcalcli-oauth.age".publicKeys = allKeys;
   "secrets/gh-hosts.age".publicKeys = allKeys;
+  "secrets/ssh-config.age".publicKeys = allKeys;
 }

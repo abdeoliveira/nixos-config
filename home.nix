@@ -210,7 +210,7 @@ programs.neovim = {
     '';
   };
 
-  home.file = {
+ home.file = {
     ".local/share/libgedit-gtksourceview-300/styles/dracula.xml".source = ./gedit/dracula.xml;
     ".config/niri/config.kdl".source = ./niri/config.kdl;
     ".config/gammastep/config.ini".source = ./gammastep/config.ini;
@@ -220,8 +220,7 @@ programs.neovim = {
     ".config/openvpn/vpnufop.conf".source = ./openvpn/vpnufop.ovpn;
     ".config/waybar".source = ./waybar;
     ".config/wallpaper".source = ./wallpaper;
-    ".ssh/id_rsa.pub".source  = ./ssh/id_rsa.pub;
-    #".ssh/known_hosts".source = ./ssh/known_hosts;
-    ".ssh/config".source      = ./ssh/config;
-  };
+    ".ssh/id_rsa.pub".text = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC2r30VhhbXHLe1XwkNaxei1V+Yw066EGLg1X22/KooFvMxn1K4CB0HxB8DG0Sya1xw3EL5FrdE8444gSuz1SK7c5xEcHGmELgjcnJEkSdXfUDlFSN8rN3tOPEqaoNhXySrnsBFbjnmb9+kAr3ptnCgBFuT9QdUeonNVHMGXxGstfOEFdGpsM3Ctr6QOqYHRgQBrc31cPriVLXXOpNQOJSssXLjBxuPuvVkNWGcvU0/gadKGwp3Nl+4BO23M/aDdASCdiQFrg5J/NRqUV7GnHvNp8K2n71XtsQkKUDX8TOY7HtWOlHjlgnv5bu03Y4dw3jfJCCZ5OfrxSZb/34UN0q79la6VYJ37tdWfwyDpahCqRlav53Rh3p3MhaPxylWOYh3AmZmOhEiK3pcrAk7hZLb0QF12PYUwLuQXCXe/KibsAJk+TRxbR2sVWiKHVhVh1/3a8LWHLHqWqGcTQS/pgQCG+qaKNrM08ft3S7h458t9FGwzlhQQ3K7tqkeLqiHgsE= oliveira@dell";
+    };
+
 }
