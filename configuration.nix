@@ -53,39 +53,52 @@
   '';
 
 # --- Networking ---
-networking.wireless = {
+networking.wireless.iwd = {
   enable = true;
-  userControlled.enable = true;
-  secretsFile = config.age.secrets.wifi-psk.path;
-#--------
-  networks = {
-    "DecoM5" = {
-     pskRaw = "ext:psk_home"; 
-   };
-#---------   
-    "NANO" = {
-      pskRaw = "ext:psk_office";
+  settings = {
+    General = {
+      EnableNetworkConfiguration = true;
     };
-#---------    
-    "Galaxy-A15" = {
-      pskRaw = "ext:psk_phone";
+    Network = {
+      EnableIPv6 = false;
+      NameResolvingService = "resolvconf";
     };
-#---------    
   };
 };
 
 # 2. Secret Configuration
+
+#--- WIFI ----
+  age.secrets.wifi-home = {
+    file = ./secrets/wifi-home.age;
+    owner = "root";
+    mode  = "0600";
+  };
+
+  age.secrets.wifi-eduroam = {
+   file = ./secrets/wifi-eduroam.age;
+   owner = "root";
+   mode = "0600";
+  };
+
+#  age.secrets.wifi-office = {
+#    file = ./secrets/wifi-office.age;
+#    owner = "root";
+#    mode  = "0600";
+#  };
+
+#  age.secrets.wifi-phone = {
+#    file = ./secrets/wifi-phone.age;
+#    owner = "root";
+#    mode  = "0600";
+#  };
+
+  #---------------------
+
 age.secrets.external-hd-key = {
   file = ./secrets/external-hd-key.age;
   owner = "oliveira";
   mode  = "0400";
-};
-
-age.secrets.wifi-psk = {
-  file = ./secrets/wifi-psk.age;
-  owner = "root";
-  group = "root";
-  mode = "0440";
 };
 
 age.secrets.restic-pw = {
@@ -96,7 +109,7 @@ age.secrets.restic-pw = {
 
 age.secrets.vpn-key = {
   file = ./secrets/vpn-key.age;
-  owner = "root"; # OpenVPN runs as root to manage the tun0 interface
+  owner = "root"; 
   mode = "0400";
 };
 
@@ -105,13 +118,6 @@ age.secrets.rclone-config = {
   owner = "oliveira";
   mode = "0600"; # Strictly for you
 };
-
-#age.secrets.ssh_id_rsa = {
-#  file = ./secrets/ssh_id_rsa.age;
-#  path = "/home/oliveira/.ssh/id_rsa";
-#  owner = "oliveira";
-#  mode  = "0600";
-#};
 
 age.secrets.gcalcli-oauth = {
   file = ./secrets/gcalcli-oauth.age;
@@ -132,14 +138,22 @@ age.secrets.ssh-config = {
   mode  = "0600";
 };
 
-# --- Fix Home Manager Profile Bootstrap ---
+ # --- Deploy .psk files into iwd's config directory ---
+  system.activationScripts.iwd-networks = {
+    deps = [ "agenix" ];
+    text = ''
+      mkdir -p /var/lib/iwd
+      chmod 0700 /var/lib/iwd
 
-#system.activationScripts.bootstrap-dirs = {
-#  text = ''
-#    mkdir -p /home/oliveira/.local/state/nix/profiles
-#    chown -R oliveira:users /home/oliveira/.local
-#  '';
-#};
+      cp /run/agenix/wifi-home    /var/lib/iwd/DecoM5.psk
+      #cp /run/agenix/wifi-office  /var/lib/iwd/NANO.psk
+      #cp /run/agenix/wifi-phone   /var/lib/iwd/Galaxy-A15.psk
+      cp /run/agenix/wifi-eduroam /var/lib/iwd/eduroam.8021x
+
+      chmod 0600 /var/lib/iwd/*.psk /var/lib/iwd/*.8021x
+      chown root:root /var/lib/iwd/*.psk /var/lib/iwd/*.8021x
+    '';
+  };
 
 #---- Rclone special copy to a writable location
 system.activationScripts.rclone-config = {

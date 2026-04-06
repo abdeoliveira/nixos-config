@@ -14,6 +14,7 @@ with pkgs; [
 
   # Other apps
   agenix.packages.${system}.default
+  iw # to manage waybar/scripts/wifipower.rb
   age
   python313
   fwupd

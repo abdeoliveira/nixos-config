@@ -75,7 +75,7 @@ elif [[ $1 == 'prune' ]];then
 		--group-by tags \
 		--keep-daily 7 \
 		--keep-weekly 4 \
-		--keep-monthly 6 \
+		--keep-monthly 12 \
 		--keep-yearly 1 \
 		--tag=$2 --prune
 elif [[ $1 == 'delete' ]];then
