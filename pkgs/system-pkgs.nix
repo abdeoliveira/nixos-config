@@ -1,20 +1,16 @@
 { pkgs, agenix, ... }:
 
 with pkgs; [
-  # --- System Packages ---
 
-  # For firefox
-    passff-host
+  passff-host # for firefox
 
-  # Ruby
   ruby
   rubyPackages.pry   
   #rubyPackages.parallel
   #rubyPackages.mini_magick
 
-  # Other apps
   agenix.packages.${system}.default
-  iw # to manage waybar/scripts/wifipower.rb
+  iw # to manage waybar/scripts/wifipower.rb only
   age
   python313
   fwupd
@@ -36,6 +32,7 @@ with pkgs; [
  #wl-clipboard-x11
   wl-clipboard
   openssl
+  
   # --- Thunar ---
   #xfce.thunar
   #xfce.thunar-volman
@@ -43,6 +40,7 @@ with pkgs; [
   #xfce.thunar-media-tags-plugin
   #xfce.tumbler
   #xfce.exo
+  
   file-roller
   gvfs
   ffmpegthumbnailer
@@ -50,5 +48,43 @@ with pkgs; [
   nautilus
   nautilus-python
   sushi
+  #vesta-viewer # bugged
+  gcalcli
+  transmission_4-gtk
+  mplayer
+  libreoffice
+  unzip
+  jmol
+  inkscape
+  xsane
+  xournalpp
+  yt-dlp
+  bc
+  speedtest-cli
+  lyx
+  gedit
+  simple-scan
+  brscan4
+  wlr-randr
+  lammps-mpi
+  ovito
+  gh
+  libnotify
+  #firefox # currently managed in home.nix
+  alacritty
+  waybar
+  eog
+  pavucontrol
+  swww
+  gammastep
+  syncthing
+  restic
+  rclone
+  pass-nodmenu
+  bemenu
+  fastfetch
+  xwayland-satellite
+  poppler-utils # pdf utilities
+  pinentry-curses
 ]
 
