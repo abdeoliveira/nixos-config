@@ -6,4 +6,6 @@ with pkgs; [
   vesta
   qtgrace
   my-scripts
+  # Other packages
+  gh
 ]

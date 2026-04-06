@@ -68,7 +68,6 @@ with pkgs; [
   wlr-randr
   lammps-mpi
   ovito
-  gh
   libnotify
   #firefox # currently managed in home.nix
   alacritty
