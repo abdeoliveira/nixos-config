@@ -60,10 +60,13 @@ networking.wireless.iwd = {
     };
     Network = {
       EnableIPv6 = false;
-      NameResolvingService = "resolvconf";
+      NameResolvingService = "systemd";
     };
   };
 };
+
+# Enable the systemd-resolved service
+services.resolved.enable = true;
 
 # 2. Secret Configuration
 
@@ -86,11 +89,11 @@ networking.wireless.iwd = {
 #    mode  = "0600";
 #  };
 
-#  age.secrets.wifi-phone = {
-#    file = ./secrets/wifi-phone.age;
-#    owner = "root";
-#    mode  = "0600";
-#  };
+  age.secrets.wifi-phone = {
+    file = ./secrets/wifi-phone.age;
+    owner = "root";
+    mode  = "0600";
+  };
 
   #---------------------
 
@@ -146,7 +149,7 @@ age.secrets.ssh-config = {
 
       cp /run/agenix/wifi-home    /var/lib/iwd/DecoM5.psk
       #cp /run/agenix/wifi-office  /var/lib/iwd/NANO.psk
-      #cp /run/agenix/wifi-phone   /var/lib/iwd/Galaxy-A15.psk
+      cp /run/agenix/wifi-phone   /var/lib/iwd/Galaxy-A15.psk
       cp /run/agenix/wifi-eduroam /var/lib/iwd/eduroam.8021x
 
       chmod 0600 /var/lib/iwd/*.psk /var/lib/iwd/*.8021x

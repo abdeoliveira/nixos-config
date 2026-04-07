@@ -8,7 +8,8 @@ with pkgs; [
   rubyPackages.pry   
   #rubyPackages.parallel
   #rubyPackages.mini_magick
-
+ 
+  impala
   agenix.packages.${system}.default
   iw # to manage waybar/scripts/wifipower.rb only
   age

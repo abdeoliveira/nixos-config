@@ -1,8 +1,8 @@
 # label,	period,	mode,	command
 restic,		1h,	uptime,	sleep 30 ; restic-gdrive backup /home/oliveira AUTO
 prune1,		1d,	clock,	sleep 30 ; restic-gdrive prune AUTO
-#prune7,		7d,	clock,	sleep 30 ; restic-gdrive prune FULL 
+prune7,		7d,	clock,	sleep 30 ; restic-gdrive prune FULL 
 cleaner,	12h,	clock,	cleaner.sh
-#etc-nixos,      1d,     clock,  rsync-etc-nixos.sh
+nixos-config,   1d,     clock,  rsync-nixos-config.sh
 gcalcli, 	10m, 	clock,   sleep 30; set -o pipefail; gcalcli agenda now 11:59pm --nostarted --tsv 2>&1 | tee /tmp/gcalcli_agenda.txt
 

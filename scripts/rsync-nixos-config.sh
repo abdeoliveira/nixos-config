@@ -2,5 +2,5 @@
 
 rsync -avH --delete \
 	--exclude=hardware-configuration.nix \
-	/etc/nixos/ \
-	/home/oliveira/Sync/etc-nixos/
+	/home/oliveira/.nixos-config/ \
+	/home/oliveira/Sync/nixos-config

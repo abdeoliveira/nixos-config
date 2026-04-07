@@ -12,6 +12,7 @@ in
 {
   "secrets/wifi-home.age".publicKeys = allKeys;
   "secrets/wifi-eduroam.age".publicKeys = allKeys;
+  "secrets/wifi-phone.age".publicKeys = allKeys;
   "secrets/vpn-key.age".publicKeys = allKeys;
   "secrets/restic-pw.age".publicKeys = allKeys;
   "secrets/rclone-config.age".publicKeys = allKeys;
