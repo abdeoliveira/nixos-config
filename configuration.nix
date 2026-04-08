@@ -24,6 +24,11 @@
       vesta = prev.callPackage ./pkgs/vesta { };
       gtk3-nocsd = prev.callPackage ./pkgs/gtk3-nocsd { };
       packmol = prev.callPackage ./pkgs/packmol { };
+      lammps = prev.lammps.override {
+      packages = prev.lammps.packages // {
+        "EXTRA-PAIR" = true;
+      };
+     };
     })
   ];
 
