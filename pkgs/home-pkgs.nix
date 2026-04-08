@@ -5,6 +5,7 @@ with pkgs; [
   gtk3-nocsd
   vesta
   qtgrace
+  packmol
   my-scripts
   # Other packages
   gh

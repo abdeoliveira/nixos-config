@@ -16,12 +16,14 @@
   ];
 
   # --- Nixpkgs Settings (overlays, unfree packages) ---
+  # --- Nixpkgs Settings (overlays, unfree packages) ---
   nixpkgs.config.allowUnfree = true;
   nixpkgs.overlays = [
-    (self: super: {
-      qtgrace = super.callPackage ./pkgs/qtgrace { };
-      vesta = super.callPackage ./pkgs/vesta { };
-      gtk3-nocsd = super.callPackage ./pkgs/gtk3-nocsd { };
+    (final: prev: {
+      qtgrace = prev.callPackage ./pkgs/qtgrace { };
+      vesta = prev.callPackage ./pkgs/vesta { };
+      gtk3-nocsd = prev.callPackage ./pkgs/gtk3-nocsd { };
+      packmol = prev.callPackage ./pkgs/packmol { };
     })
   ];
 
