@@ -13,6 +13,7 @@
   imports = [
     ./hardware-configuration.nix
     ./host-specific.nix
+    ./pkgs/syncthing.nix
   ];
 
   # --- Nixpkgs Settings (overlays, unfree packages) ---

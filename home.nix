@@ -5,7 +5,9 @@ let
 in
 
 {
-  imports = [ ./timers/simplecron.nix ];
+  imports = [ 
+  ./timers/simplecron.nix 
+  ];
 
   _module.args.my-scripts = my-scripts;
 
