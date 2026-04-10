@@ -142,7 +142,7 @@ programs.neovim = {
    # XCURSOR_THEME = "Dracula-cursors";
    # XCURSOR_SIZE = "24";
     PASSWORD_STORE_X_SELECTION = "primary";
-    PASSWORD_STORE_DIR = "/home/oliveira/Sync/password-store";
+    PASSWORD_STORE_DIR = "/home/oliveira/.password-store";
     #QT_QPA_PLATFORMTHEME = "qt6ct";
     OMP_NUM_THREADS = "1";
     GTK_CSD = "0";
@@ -189,6 +189,21 @@ programs.neovim = {
       "border-color" = "#EE82EE";
     };
   };
+
+  systemd.user.services.taildrop-receiver = {
+  Unit = {
+    Description = "Tailscale Taildrop File Receiver";
+    After = [ "network-online.target" ];
+  };
+  Service = {
+    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=overwrite %h/Downloads/";
+    Restart = "always";
+    RestartSec = "10";
+  };
+  Install = {
+    WantedBy = [ "default.target" ];
+  };
+};
 
   # --- GPG Configuration ---
   programs.gpg = {

@@ -13,7 +13,7 @@
   imports = [
     ./hardware-configuration.nix
     ./host-specific.nix
-    ./pkgs/syncthing.nix
+    #./pkgs/syncthing.nix
   ];
 
   # --- Nixpkgs Settings (overlays, unfree packages) ---
@@ -52,12 +52,28 @@
   }
 ];
 
+# --- Some power management blocks ----
+#powerManagement.resumeCommands = ''
+#  ${pkgs.systemd}/bin/systemctl restart tailscaled
+#'';
+
 # Mount /tmp as tmpfs (in memory, cleared on reboot)
   boot.tmp.useTmpfs = true;
 
   services.udev.extraRules = ''
     KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
   '';
+
+services.tailscale = {
+  enable = true;
+  authKeyFile = config.age.secrets.tailscale-secret.path;
+  # This allows the 'oliveira' user to run 'tailscale' commands without sudo
+  extraUpFlags = [
+    "--operator=oliveira"
+    "--advertise-tags=tag:notebook"
+  ];
+};
+
 
 # --- Networking ---
 networking.wireless.iwd = {
@@ -146,6 +162,12 @@ age.secrets.ssh-config = {
   path = "/home/oliveira/.ssh/config";
   owner = "oliveira";
   mode  = "0600";
+};
+
+age.secrets.tailscale-secret = {
+file = ./secrets/tailscale-secret.age;
+owner = "root";
+mode = "400";
 };
 
  # --- Deploy .psk files into iwd's config directory ---

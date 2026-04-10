@@ -77,7 +77,7 @@ with pkgs; [
   pavucontrol
   swww
   gammastep
-  syncthing
+  #syncthing
   restic
   rclone
   pass-nodmenu
