@@ -190,13 +190,16 @@ programs.neovim = {
     };
   };
 
-  systemd.user.services.taildrop-receiver = {
+#-- Taildrop service auto receiver
+
+systemd.user.services.taildrop-receiver = {
   Unit = {
     Description = "Tailscale Taildrop File Receiver";
     After = [ "network-online.target" ];
   };
   Service = {
-    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=overwrite %h/Downloads/";
+    ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/Downloads";
+    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=rename %h/Downloads";
     Restart = "always";
     RestartSec = "10";
   };

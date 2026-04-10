@@ -10,9 +10,9 @@ if [ -d "$DOWNLOADS_DIR" ]; then
 fi
 
 # Clean screenshots folder if it exists
-if [ -d "$SCREENSHOTS_DIR" ]; then
-  find "$SCREENSHOTS_DIR" -mindepth 1 -mmin +2880 -delete
-fi
+#if [ -d "$SCREENSHOTS_DIR" ]; then
+#  find "$SCREENSHOTS_DIR" -mindepth 1 -mmin +2880 -delete
+#fi
 
 # Delete hidden bash_history tmp files. This command is safe even if no files are found.
 #find /home/oliveira -name ".bash_history-*.tmp" -type f -mmin +10080 -delete
