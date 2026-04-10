@@ -66,12 +66,10 @@
 
 services.tailscale = {
   enable = true;
-  authKeyFile = config.age.secrets.tailscale-secret.path;
-  # This allows the 'oliveira' user to run 'tailscale' commands without sudo
-  extraUpFlags = [
-    "--operator=oliveira"
-    "--advertise-tags=tag:notebook"
-  ];
+  extraUpFlags = [ 
+  #"--operator=oliveira"
+  #"--reset"
+  ]; 
 };
 
 
@@ -162,12 +160,6 @@ age.secrets.ssh-config = {
   path = "/home/oliveira/.ssh/config";
   owner = "oliveira";
   mode  = "0600";
-};
-
-age.secrets.tailscale-secret = {
-file = ./secrets/tailscale-secret.age;
-owner = "root";
-mode = "400";
 };
 
  # --- Deploy .psk files into iwd's config directory ---

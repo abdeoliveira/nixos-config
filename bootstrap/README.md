@@ -10,7 +10,11 @@
 7. `cat /etc/ssh/ssh_host_ed25519_key.pub` and update `system=` at `../secrets/secrets.nix`
 8. `./reencrypt-keys.sh`
 9. `cd ~/.nixos-config && git add . && sudo nixos-rebuild switch --flake .`
-10. Import GPG keys for pass
+
+# After bootstraping
+1. Import GPG keys for pass
+2. `sudo tailscale up`
+3. `sudo tailscale set --operator=$USER`
 
 ## Optional (but worth checking!)
 1. `vim flake.nix` (check host name, `.nixos`, at `nixosConfigurations.nixos`)

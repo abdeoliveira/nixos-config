@@ -20,5 +20,4 @@ in
   "secrets/gcalcli-oauth.age".publicKeys = allKeys;
   "secrets/gh-hosts.age".publicKeys = allKeys;
   "secrets/ssh-config.age".publicKeys = allKeys;
-  "secrets/tailscale-secret.age".publicKeys = allKeys;
 }
