@@ -9,7 +9,7 @@ EXCLUDES="--exclude=$HOME/.local/share/Trash \
 	--exclude=$HOME/.config/google-chrome \
 	--exclude=$HOME/.local/share/torbrowser \
 	--exclude=$HOME/Downloads"
-TAG="--tag=NOTEBOOK"
+#TAG="--tag=NOTEBOOK"
 #export PASSWORD_STORE_DIR=/home/oliveira/Sync/password-store
 #export RESTIC_PASSWORD=$(pass PASSWORDS/restic)
 export RESTIC_PASSWORD_FILE=/run/agenix/restic-pw
