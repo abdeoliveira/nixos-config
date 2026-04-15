@@ -9,6 +9,8 @@ with pkgs; [
   #rubyPackages.parallel
   #rubyPackages.mini_magick
  
+  chromium
+  xauth
   impala
   agenix.packages.${system}.default
   iw # to manage waybar/scripts/wifipower.rb only

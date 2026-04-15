@@ -1,8 +1,9 @@
 # label,		period,	mode,	command
-restic-backup,		1h,	uptime,	sleep 30 ; restic-gdrive backup /home/oliveira AUTO
+restic-local,		1h,	uptime,	sleep 30 ; restic-gdrive backup /home/oliveira AUTO
 restic-prune-auto,	1d,	clock,	sleep 30 ; restic-gdrive prune AUTO
 restic-prune-full,	7d,	clock,	sleep 30 ; restic-gdrive prune FULL 
 restic-prune-phone,	7d,	clock,	sleep 30 ; restic-gdrive prune PHONE
-cleaner,		1d,	clock,	cleaner.sh
+cleaner,		1h,	uptime,	cleaner.sh
 gcalcli, 		10m, 	clock,	sleep 30; gcalcli-update.sh 
 sync-password-store,	1d, 	clock,	sleep 30; sync-password-store.sh 
+restic-phone,		1d,	clock,	sleep 30; ssh phone '~/bin/backup_phone.sh'

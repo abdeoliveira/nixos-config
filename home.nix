@@ -198,8 +198,8 @@ systemd.user.services.taildrop-receiver = {
     After = [ "network-online.target" ];
   };
   Service = {
-    ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/Downloads";
-    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=rename %h/Downloads";
+    ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/Downloads/Tailsdrop";
+    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=rename %h/Downloads/Tailsdrop";
     Restart = "always";
     RestartSec = "10";
   };
