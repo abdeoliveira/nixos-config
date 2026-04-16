@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# scripts/manage-vpn
 
 VPN_CONF="/home/oliveira/.config/openvpn/vpnufop.conf"
 PID_FILE="/tmp/openvpn-ufop.pid"
@@ -15,7 +14,7 @@ case "$1" in
         # Point directly to the agenix secret
         openvpn --config "$VPN_CONF" --auth-user-pass "$AUTH_FILE" --daemon --writepid "$PID_FILE"
 
-        sleep 2
+        sleep 3
         echo "nameserver 8.8.8.8" | resolvconf -a tun0
         echo "OpenVPN started."
         ;;

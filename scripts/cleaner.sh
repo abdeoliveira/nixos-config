@@ -10,4 +10,4 @@ if [ -d "$DOWNLOADS_DIR" ]; then
   find "$DOWNLOADS_DIR" -mindepth 1 -mmin +1440 -delete -o -type d -empty -delete
 fi
 
-mkdir -p TAILSDROP_DIR
+mkdir -p $TAILSDROP_DIR
