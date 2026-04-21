@@ -5,7 +5,7 @@ LOCKFILE=/tmp/lock-restic-backups-$PROFILE
 BKPDIR=/home/oliveira
 EXCLUDES="--exclude=$HOME/.local/share/Trash \
 	--exclude=$HOME/.cache \
-	--exclude=$HOME/.mozilla \
+	--exclude=$HOME/.mozilla/firefox/oliveira/storage/default \
 	--exclude=$HOME/.config/google-chrome \
 	--exclude=$HOME/.local/share/torbrowser \
 	--exclude=$HOME/Downloads"

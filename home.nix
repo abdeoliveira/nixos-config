@@ -239,7 +239,7 @@ systemd.user.services.taildrop-receiver = {
     ".config/simplecron/config".source = ./simplecron/config;
     ".config/openvpn/vpnufop.conf".source = ./openvpn/vpnufop.ovpn;
     ".config/waybar".source = ./waybar;
-    ".config/wallpaper".source = ./wallpaper;
+    ".config/wallpaper".source = ./wallpapers/wallpaper;
     ".config/cat_installer/ca.pem".source = ./certs/ca.pem;
     };
 

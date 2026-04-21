@@ -9,6 +9,7 @@ with pkgs; [
   #rubyPackages.parallel
   #rubyPackages.mini_magick
  
+  sshfs
   chromium
   xauth
   impala

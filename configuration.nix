@@ -42,6 +42,7 @@
   boot.kernelPackages = pkgs.linuxPackages;
   boot.kernelModules = [ "i2c-dev" ];
   boot.kernelParams = ["mem_sleep_default=deep" "i915.enable_psr=0"];
+  boot.supportedFilesystems = [ "fuse" ];
 
   # --- Swap memory ---
   swapDevices = [
@@ -52,10 +53,8 @@
   }
 ];
 
-# --- Some power management blocks ----
-#powerManagement.resumeCommands = ''
-#  ${pkgs.systemd}/bin/systemctl restart tailscaled
-#'';
+# Allow regular users use the 'allow_other' option
+ programs.fuse.userAllowOther = true;
 
 # Mount /tmp as tmpfs (in memory, cleared on reboot)
   boot.tmp.useTmpfs = true;
@@ -67,7 +66,8 @@
 services.tailscale = {
   enable = true;
   extraUpFlags = [ 
-  #"--operator=oliveira"
+  "--operator=oliveira"
+  "--accept-dns=false"
   #"--reset"
   ]; 
 };
