@@ -160,7 +160,6 @@ programs.neovim = {
       pry = "pry 2>/dev/null";
       xmgrace = "qtgrace 2>/dev/null";
       nrs = "sudo nixos-rebuild switch --flake /home/oliveira/.nixos-config";
-      hm-reload = "unset __HM_SESS_VARS_SOURCED && source /etc/profiles/per-user/oliveira/etc/profile.d/hm-session-vars.sh";
     };
 
   initExtra = ''
@@ -198,8 +197,8 @@ systemd.user.services.taildrop-receiver = {
     After = [ "network-online.target" ];
   };
   Service = {
-    ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/Downloads/Tailsdrop";
-    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=rename %h/Downloads/Tailsdrop";
+    ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p %h/downloads/tailsdrop";
+    ExecStart = "${pkgs.tailscale}/bin/tailscale file get --loop --conflict=rename %h/downloads/tailsdrop";
     Restart = "always";
     RestartSec = "10";
   };

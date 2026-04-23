@@ -17,7 +17,6 @@
   ];
 
   # --- Nixpkgs Settings (overlays, unfree packages) ---
-  # --- Nixpkgs Settings (overlays, unfree packages) ---
   nixpkgs.config.allowUnfree = true;
   nixpkgs.overlays = [
     (final: prev: {
@@ -42,7 +41,7 @@
   boot.kernelPackages = pkgs.linuxPackages;
   boot.kernelModules = [ "i2c-dev" ];
   boot.kernelParams = ["mem_sleep_default=deep" "i915.enable_psr=0"];
-  boot.supportedFilesystems = [ "fuse" ];
+  ##boot.supportedFilesystems = [ "fuse" ];
 
   # --- Swap memory ---
   swapDevices = [
@@ -54,7 +53,7 @@
 ];
 
 # Allow regular users use the 'allow_other' option
- programs.fuse.userAllowOther = true;
+ ##programs.fuse.userAllowOther = true;
 
 # Mount /tmp as tmpfs (in memory, cleared on reboot)
   boot.tmp.useTmpfs = true;
