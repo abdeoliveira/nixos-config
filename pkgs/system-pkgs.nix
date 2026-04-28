@@ -2,12 +2,12 @@
 
 with pkgs; [
 
-  passff-host # for firefox
+  #passff-host # for firefox
 
   ruby
   rubyPackages.pry   
   #rubyPackages.parallel
-  #rubyPackages.mini_magick
+  #rubyPackages.meni_magick
  
   ##sshfs
   chromium
@@ -73,7 +73,7 @@ with pkgs; [
   lammps-mpi
   ovito
   libnotify
-  #firefox # currently managed in home.nix
+  firefox # currently managed in home.nix
   alacritty
   waybar
   eog

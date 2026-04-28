@@ -26,6 +26,7 @@
       packmol = prev.callPackage ./pkgs/packmol { };
       lammps = prev.lammps.override {
       packages = prev.lammps.packages // {
+        "EXTRA-MOLECULE" = true;
         "EXTRA-PAIR" = true;
       };
      };

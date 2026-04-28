@@ -17,10 +17,10 @@ in
      inherit pkgs my-scripts; 
      };
 
-   programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
-   };
+   #programs.direnv = {
+   # enable = true;
+   # nix-direnv.enable = true;
+   #};
 
   gtk = {
     enable = true;
@@ -49,34 +49,34 @@ in
   };
 
 #----Firefox----------
-programs.firefox = {
-  enable = true;
-  profiles.oliveira = {
-    id = 0;
-    name = "oliveira";
-    #path = "n22j49de.default";
-    extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
-      ublock-origin
-      istilldontcareaboutcookies
-      passff
-    ];
-    settings = {
-      "browser.urlbar.placeholderName"         = "DuckDuckGo";
-      "browser.urlbar.placeholderName.private" = "DuckDuckGo";
-      "browser.engagement.home-button.has-used" = true;
-      "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
-      "browser.newtabpage.activity-stream.showSponsoredTopSites"     = false;
-      "privacy.donottrackheader.enabled" = true;
-      "network.dns.disablePrefetch"      = true;
-      "network.prefetch-next"            = false;
-      "signon.rememberSignons"           = false;
-      "sidebar.visibility"               = "hide-sidebar";
-      "browser.toolbars.bookmarks.visibility" = "always";
-      "browser.translations.automaticallyPopup" = false;
-      "browser.uiCustomization.state" = "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[\"ublock0_raymondhill_net-browser-action\",\"idcac-pub_guus_ninja-browser-action\",\"passff_invicem_pro-browser-action\",\"jid1-kkzogwgsw3ao4q_jetpack-browser-action\"],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"customizableui-special-spring1\",\"vertical-spacer\",\"urlbar-container\",\"customizableui-special-spring2\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"firefox-view-button\",\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"developer-button\",\"screenshot-button\",\"idcac-pub_guus_ninja-browser-action\",\"passff_invicem_pro-browser-action\",\"ublock0_raymondhill_net-browser-action\",\"jid1-kkzogwgsw3ao4q_jetpack-browser-action\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\",\"PersonalToolbar\",\"unified-extensions-area\",\"TabsToolbar\",\"toolbar-menubar\"],\"currentVersion\":23,\"newElementCount\":3}";
-    };
-  };
-};
+#programs.firefox = {
+#  enable = true;
+#  profiles.oliveira = {
+#    id = 0;
+#    name = "oliveira";
+#    #path = "n22j49de.default";
+#    extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
+#      ublock-origin
+#      istilldontcareaboutcookies
+#      passff
+#    ];
+#    settings = {
+#      "browser.urlbar.placeholderName"         = "DuckDuckGo";
+#      "browser.urlbar.placeholderName.private" = "DuckDuckGo";
+#      "browser.engagement.home-button.has-used" = true;
+#      "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
+#      "browser.newtabpage.activity-stream.showSponsoredTopSites"     = false;
+#      "privacy.donottrackheader.enabled" = true;
+#      "network.dns.disablePrefetch"      = true;
+#      "network.prefetch-next"            = false;
+#      "signon.rememberSignons"           = false;
+#      "sidebar.visibility"               = "hide-sidebar";
+#      "browser.toolbars.bookmarks.visibility" = "always";
+#      "browser.translations.automaticallyPopup" = false;
+#      "browser.uiCustomization.state" = "{\"placements\":{\"widget-overflow-fixed-list\":[],\"unified-extensions-area\":[\"ublock0_raymondhill_net-browser-action\",\"idcac-pub_guus_ninja-browser-action\",\"passff_invicem_pro-browser-action\",\"jid1-kkzogwgsw3ao4q_jetpack-browser-action\"],\"nav-bar\":[\"back-button\",\"forward-button\",\"stop-reload-button\",\"home-button\",\"customizableui-special-spring1\",\"vertical-spacer\",\"urlbar-container\",\"customizableui-special-spring2\",\"downloads-button\",\"fxa-toolbar-menu-button\",\"unified-extensions-button\"],\"toolbar-menubar\":[\"menubar-items\"],\"TabsToolbar\":[\"firefox-view-button\",\"tabbrowser-tabs\",\"new-tab-button\",\"alltabs-button\"],\"vertical-tabs\":[],\"PersonalToolbar\":[\"personal-bookmarks\"]},\"seen\":[\"developer-button\",\"screenshot-button\",\"idcac-pub_guus_ninja-browser-action\",\"passff_invicem_pro-browser-action\",\"ublock0_raymondhill_net-browser-action\",\"jid1-kkzogwgsw3ao4q_jetpack-browser-action\"],\"dirtyAreaCache\":[\"nav-bar\",\"vertical-tabs\",\"PersonalToolbar\",\"unified-extensions-area\",\"TabsToolbar\",\"toolbar-menubar\"],\"currentVersion\":23,\"newElementCount\":3}";
+#    };
+#  };
+#};
 
 #----mimeApps config----
 xdg.mimeApps = {
@@ -169,7 +169,7 @@ programs.neovim = {
       export GPG_UNLOCK_KEY="alanbarros@protonmail.com"
       complete -W 'mount umount' external-hd-mount
       complete -W 'backup restore list prune delete help unlock mount check find check-download /tmp/external-hd/data' restic-gdrive
-      eval "$(direnv hook bash)"      
+      #eval "$(direnv hook bash)"      
 
 # Start Niri on tty1
   if [ "$(tty)" = "/dev/tty1" ]; then
