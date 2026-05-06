@@ -24,6 +24,7 @@
       vesta = prev.callPackage ./pkgs/vesta { };
       gtk3-nocsd = prev.callPackage ./pkgs/gtk3-nocsd { };
       packmol = prev.callPackage ./pkgs/packmol { };
+      lammps-interface = prev.callPackage ./pkgs/lammps-interface { };
       lammps = prev.lammps.override {
       packages = prev.lammps.packages // {
         "EXTRA-MOLECULE" = true;
@@ -89,6 +90,11 @@ networking.wireless.iwd = {
 
 # Enable the systemd-resolved service
 services.resolved.enable = true;
+
+networking.hosts = {
+    "151.101.192.223" = [ "files.pythonhosted.org" "pypi.org" "pypi.io" ];
+  };
+
 
 # 2. Secret Configuration
 

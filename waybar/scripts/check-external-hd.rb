@@ -9,7 +9,7 @@ def drive_mounted?
 end
 
 if drive_mounted?
-  string = "| 󱊞 active"
+  string = " 󱊞 active"
 else
   string = ''
 end

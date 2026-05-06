@@ -7,6 +7,7 @@ with pkgs; [
   qtgrace
   packmol
   my-scripts
+  lammps-interface
   # Other packages
   gh
 ]

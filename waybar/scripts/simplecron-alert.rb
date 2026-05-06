@@ -29,4 +29,4 @@ data.each do |line|
   end
 end
 
-puts "| 󰀦 #{failed_job}" unless failed_job.empty?
+puts " 󰀦 #{failed_job}" unless failed_job.empty?
