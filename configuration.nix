@@ -73,6 +73,8 @@ services.tailscale = {
   ]; 
 };
 
+# --- pass to work in chromium ---
+programs.browserpass.enable = true;
 
 # --- Networking ---
 networking.wireless.iwd = {
@@ -90,11 +92,6 @@ networking.wireless.iwd = {
 
 # Enable the systemd-resolved service
 services.resolved.enable = true;
-
-networking.hosts = {
-    "151.101.192.223" = [ "files.pythonhosted.org" "pypi.org" "pypi.io" ];
-  };
-
 
 # 2. Secret Configuration
 
