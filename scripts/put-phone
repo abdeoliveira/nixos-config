@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-tailscale file cp $1 phone:
+#tailscale file cp $1 phone:
+DEST=/data/data/com.termux/files/home/storage/shared/Download/Tailsdrop
+scp -r "$1" phone:$DEST
