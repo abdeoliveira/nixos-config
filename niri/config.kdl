@@ -78,7 +78,7 @@ window-rule {
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+N { spawn "nautilus"; }
-    Mod+B { spawn "firefox"; }
+    Mod+B { spawn "chromium"; }
     Mod+return { spawn "alacritty"; }
     Ctrl+space { spawn "bemenu-cli" "-run"; }
     Super+L { spawn "swaylock"; }
