@@ -73,7 +73,7 @@ with pkgs; [
   lammps-mpi
   ovito
   libnotify
-  firefox # currently managed in home.nix
+  #firefox 
   alacritty
   waybar
   eog
