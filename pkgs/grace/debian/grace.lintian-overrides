@@ -1,0 +1,8 @@
+# This directory is shipped empty, but populated by the update-grace-fonts script in the postinst.
+grace: package-contains-empty-directory [usr/share/grace/fonts/type1/]
+# T1lib.  Embedding it is ugly, but it's marginally better than nothing. Overriding error as standalone t1lib is no longer in the archive.
+grace: embedded-library t1lib [usr/bin/xmgrace]
+# False positive.  The script does some odd checks for the location of a non-packaged build, but then falls back to respecting $PATH.
+grace: bin-sbin-mismatch
+# Abbreviation for longitude.
+grace: spelling-error-in-binary lon long [usr/bin/xmgrace]

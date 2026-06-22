@@ -1,0 +1,21 @@
+T1lib
+=====
+
+Since version 1:5.1.23-4, grace uses an embedded and statically linked copy of
+a portion of T1lib for some rendering tasks.  No shared library is provided.
+The included T1lib code can be treated as a part of the grace distribution.
+Please note that it is not a *full* copy of the original T1lib source, only the
+license and the subcomponents of the original tree needed for grace.
+
+Bugs in the T1lib implementation included in the grace source tree, and that
+are relevant to grace's operation, will be dealt with like any other grace bug.
+The included T1lib code should *not* be used in other projects; if you really
+need the shared library (e.g. to support other old software not in the Debian
+archive), you should instead investigate the old versions still available at
+<http://snapshot.debian.org/package/t1lib/>; the most recent version available
+there should be considered better (in a relative sense!) for use as a shared
+library.  Additionally, it contains the full upstream distribution, which grace
+does not.
+
+New projects should most certainly not use T1lib at all.
+

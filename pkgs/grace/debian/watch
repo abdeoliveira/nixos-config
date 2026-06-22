@@ -1,0 +1,3 @@
+Version: 5
+Source: https://plasma-gate.weizmann.ac.il/pub/grace/src/grace5/
+Matching-Pattern: grace-@ANY_VERSION@@ARCHIVE_EXT@

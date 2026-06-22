@@ -1,0 +1,285 @@
+<HTML>
+<HEAD>
+ <TITLE>Grace: a WYSIWYG 2D plotting tool</TITLE>
+</HEAD>
+
+<BODY>
+<CENTER>
+|<A HREF="copyright">Copyright</A>|<A HREF="GPL.html">License</A>|<BR>
+|<A HREF="http://plasma-gate.weizmann.ac.il/Grace/screenshots/">Screenshots</A>
+|<A HREF="http://plasma-gate.weizmann.ac.il/Grace/gallery/">Gallery</A>
+|<A HREF="ftp://plasma-gate.weizmann.ac.il/pub/grace/">Download</A>|<BR>
+|<A HREF="FAQ.html">FAQ</A>
+|<A HREF="UsersGuide.html">User's Guide</A>
+|<A HREF="Tutorial.html">Tutorial</A>
+|<A HREF="CHANGES.html">History</A>|<BR>
+|<A HREF="http://plasma-gate.weizmann.ac.il/Grace/maillists/grace/">Mailing List Archives</A>
+|<A HREF="http://plasma-gate.weizmann.ac.il/w3todo/index.phtml?Pr_name=Grace">Suggestions and bug reports</A>|<BR>
+|<A HREF="http://plasma-gate.weizmann.ac.il/Grace/devel/">Developer's corner</A>|
+
+</CENTER>
+
+<P>
+
+<CENTER>
+<A NAME="intro">
+<BIG>Introduction</BIG>
+</A>
+</CENTER>
+
+<P>
+
+<b>Grace</b> is a WYSIWYG 2D plotting tool for the X Window System and
+M*tif. Grace runs on practically any version of Unix-like OS. As well, it
+has been successfully ported to VMS, OS/2, and Win9*/NT/XP (some minor
+functionality may be missing, though).
+
+<P>
+
+Grace is a descendant of <A HREF="http://plasma-gate.weizmann.ac.il/Xmgr/"><b>ACE/gr</b></A>, also known as <b>Xmgr</b>.
+
+<P>
+
+<CENTER>
+<A NAME="features">
+<BIG>Features</BIG>
+</A>
+</CENTER>
+
+Grace features at a glance:
+
+<p>
+
+<b>General</b>
+
+<ul>
+<li>
+WYSIWYG design</li>
+
+<li>
+Convenient point-and-click graphical user interface</li>
+
+<li>
+Precise control of graph features</li>
+
+<li>
+True publication quality</li>
+
+<li>
+Graphs refresh almost instantly</li>
+</ul>
+
+<table>
+<tr>
+<td></td>
+
+<td><b>Export Options</b></td>
+</tr>
+</table>
+
+<ul>
+<li>
+Exports high-resolution graphics to (E)PS, PDF, MIF, and SVG formats</li>
+
+<li>
+Supports cross-platform PNM, JPEG and PNG formats</li>
+
+<li>
+Device-independent Type1 font rastering, including anti-aliasing, ligatures
+and kerning</li>
+</ul>
+
+<b>Graphing Flexibility</b>
+
+<ul>
+<li>
+Unlimited number of graphs</li>
+
+<li>
+Unlimited number of curves on a graph</li>
+
+<li>
+Up to 256 customizable colors</li>
+
+<li>
+9 dashed line styles</li>
+
+<li>
+32 fill patterns</li>
+
+<li>
+10 built-in marker symbols; plus, any character glyph from any font can
+be used as a marker</li>
+
+<li>
+Color/fill markers</li>
+
+<li>
+Text annotations with subscripts, superscripts, mixed fonts, styles and
+colors and more complex typesetting</li>
+</ul>
+
+<b>Curve Fitting</b>
+
+<ul>
+<li>
+Linear and nonlinear least-squares</li>
+
+<li>
+Calculation and display of residuals</li>
+
+<li>
+Arbitrarily complex user-defined fitting functions, including dynamically
+loadable C/Fortran/... modules</li>
+
+<li>
+Fitting with constraints</li>
+
+<li>
+Region restrictions</li>
+
+<li>
+Fitting with arbitrary weight functions</li>
+</ul>
+
+<b>Analysis Capability</b>
+
+<ul>
+<li>
+FFT</li>
+
+<li>
+Integration and differentiation</li>
+
+<li>
+Histograms</li>
+
+<li>
+Splines, including Akima splines</li>
+
+<li>
+Interpolation and smoothing</li>
+
+<li>
+Convolution, correlation, and covariation</li>
+
+<li>
+Sorting</li>
+</ul>
+
+<b>Data Formats</b>
+
+<ul>
+<li>
+Unlimited data size; up to six dimensions plus an optional array of strings</li>
+
+<li>
+Reads text data input files</li>
+
+<li>
+Reads 1D netCDF files</li>
+</ul>
+
+<b>Programmability</b>
+
+<ul>
+<li>
+Built-in programming language</li>
+
+<li>
+Math functions manipulate entire array</li>
+
+<li>
+Variables, including arrays (1D)</li>
+
+<li>
+User-definable functions via loadable modules</li>
+
+<li>
+All aspects of plot outlook can be programmed</li>
+
+<li>
+Controllable by external programs</li>
+</ul>
+
+<b>Customization/Extensibility</b>
+
+<ul>
+<li>
+Dynamic module loading - write your own C/Fortran/...</li>
+
+<li>
+User-defined colors</li>
+
+<li>
+User-supplied fonts and encodings</li>
+</ul>
+
+
+<P>
+
+Please refer to the <A HREF="UsersGuide.html">Grace User's Guide</A> for more detailed 
+description.
+
+
+<P>
+
+<CENTER>
+<A NAME="maillists">
+<BIG>Mailing lists</BIG>
+</A>
+</CENTER>
+
+<P>
+
+Grace has two general-purpose mailing lists: <B>grace</B> and
+<B>grace-announce</B>. The first one, unmoderated,
+serves for general discussions of Grace. You can subscribe to it by sending an email to 
+<A HREF="mailto:grace-request@plasma-gate.weizmann.ac.il">grace-request@plasma-gate.weizmann.ac.il</A>
+with <EM>no</EM> subject line and <EM>the only</EM> word 'Subscribe' (without quotes, of
+course) in the body of the message. You may instead wish to subscribe to the digest of the list by sending
+same email to <A HREF="mailto:grace-digest-request@plasma-gate.weizmann.ac.il">grace-digest-request@plasma-gate.weizmann.ac.il</A>.
+The digest is sent once in a three days or when its size exceeds 32K.
+<P>
+The moderated grace-announce list is for new version or serious bug fix announcements only (which are automatically relayed to
+the first mailing list, too).
+The address to send subscription requests is
+<A HREF="mailto:grace-announce-request@plasma-gate.weizmann.ac.il">grace-announce-request@plasma-gate.weizmann.ac.il</A>.
+<P>
+To unsubscribe from a list, same instructions apply, with "Subscribe" being replaced by "Unsubscribe".
+<P>
+
+There are <A HREF="http://plasma-gate.weizmann.ac.il/Grace/maillists/grace/">mailing list archives</A> available for browsing.
+
+<P>
+
+<CENTER>
+<A NAME="reports">
+<BIG>Suggestions and bug reports</BIG>
+</A>
+</CENTER>
+
+<P>
+
+If you found a bug in Grace or wish to suggest some improvements, please do
+it <A HREF="http://plasma-gate.weizmann.ac.il/w3todo/index.phtml?Pr_name=Grace">on-line</A>.
+
+
+<TABLE WIDTH="95%">
+<TR>
+<TD ALIGN=LEFT WIDTH="20%">
+<A HREF="http://plasma-gate.weizmann.ac.il/Grace/">The Grace Homepage</A>
+</TD>
+<TD ALIGN=RIGHT WIDTH="65%">
+<SMALL>Web design: Copyleft © 1998-2000
+<A HREF="mailto:fnevgeny@plasma-gate.weizmann.ac.il">Evgeny
+Stambulchik</A>,<BR>
+slightly modified by <a href="mailto:twerner@debian.org">Torsten
+Werner</a> for the Debian GNU/Linux operating system</SMALL>
+</TD>
+</TR>
+</TABLE>
+<P>
+
+</BODY>
+</HTML>

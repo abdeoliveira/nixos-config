@@ -1,0 +1,71 @@
+Description: Allow reproducible builds
+ The program's help window normally displays information about the build system.
+ Replace that with reproducible information from the packaging.
+Author: Nicholas Breen
+Origin: vendor
+Forwarded: not-needed
+Last-Update: 2026-06-17
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: grace/src/buildinfo.c
+===================================================================
+--- grace.orig/src/buildinfo.c
++++ grace/src/buildinfo.c
+@@ -52,6 +52,9 @@ static void VersionInfo(FILE *outfile)
+     struct utsname u_info;
+     time_t time_info;
+     char *ctime_string;
++    char *env_package_version;
++    char *env_distro_name;
++    char *env_source_date_epoch;
+ 
+     fprintf(outfile, "#define BI_VERSION_ID %d\n",
+             MAJOR_REV*10000 + MINOR_REV*100 + PATCHLEVEL);
+@@ -100,16 +103,28 @@ static void VersionInfo(FILE *outfile)
+     fprintf(outfile, "#define BI_CCOMPILER \"%s\"\n",
+         CCOMPILER);
+     
+-    uname(&u_info);
+-    fprintf(outfile, "#define BI_SYSTEM \"%s %s %s %s\"\n",
+-        u_info.sysname, u_info.version, u_info.release, u_info.machine);
++    env_package_version = getenv("DEB_VERSION");
++    env_distro_name = getenv("DEB_VENDOR");
++    if ((env_package_version != NULL) && (env_distro_name != NULL)) {
++        fprintf(outfile, "#define BI_SYSTEM \"Package version %s (%s)\"\n",
++            env_package_version, env_distro_name);
++    } else {
++        uname(&u_info);
++        fprintf(outfile, "#define BI_SYSTEM \"%s %s %s %s\"\n",
++            u_info.sysname, u_info.version, u_info.release, u_info.machine);
++    }
+ 
+-    time_info = time(NULL);
+-    ctime_string = ctime(&time_info);
++    env_source_date_epoch = getenv("SOURCE_DATE_EPOCH");
++    if (env_source_date_epoch != NULL) {
++        time_info = (time_t)strtoll(env_source_date_epoch, NULL, 10);
++    } else {
++        time_info = time(NULL);
++    }
++    ctime_string = asctime(gmtime((&time_info)));
+     if (ctime_string[strlen(ctime_string) - 1] == '\n') {
+         ctime_string[strlen(ctime_string) - 1] = '\0';
+     }
+-    fprintf(outfile, "#define BI_DATE \"%s\"\n", ctime_string);
++    fprintf(outfile, "#define BI_DATE \"%s UTC\"\n", ctime_string);
+ 
+     fprintf(outfile, "\n");
+ 
+Index: grace/src/Makefile
+===================================================================
+--- grace.orig/src/Makefile
++++ grace/src/Makefile
+@@ -25,7 +25,7 @@ LIBS=$(GUI_LIBS) $(CEPHES_LIB) $(NETCDF_
+ PREFS=-DGRACE_HOME=\"$(GRACE_HOME)\" -DGRACE_PRINT_CMD=\"$(PRINT_CMD)\" \
+ 	-DGRACE_EDITOR=\"$(GRACE_EDITOR)\" \
+ 	-DGRACE_HELPVIEWER=\"$(GRACE_HELPVIEWER)\" \
+-	-DCCOMPILER=\"'$(CC) $(CFLAGS) $(LDFLAGS) $(LIBS)'\" 
++	-DCCOMPILER=\"'Consult build logs'\"
+ 
+ all : $(GRACE)
+ 

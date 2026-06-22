@@ -1,0 +1,49 @@
+Source: grace
+Section: math
+Priority: optional
+Maintainer: Nicholas Breen <nbreen@debian.org>
+Standards-Version: 4.7.4
+Build-Depends: debhelper-compat (= 13),
+               fontconfig,
+               gfortran | fortran-compiler,
+               libfftw3-dev,
+               libjpeg-dev,
+               libmotif-dev,
+               libnetcdf-dev,
+               libpng-dev,
+               libtirpc-dev,
+               libxau-dev,
+               libxaw7-dev,
+               libxbae-dev,
+               libxext-dev,
+               libxmhtml-dev,
+               libxpm-dev,
+               libxt-dev,
+               linuxdoc-tools,
+               texlive-fonts-recommended,
+               texlive-latex-base,
+               texlive-latex-recommended
+Rules-Requires-Root: binary-targets
+Vcs-Browser: https://salsa.debian.org/debian/grace
+Vcs-Git: https://salsa.debian.org/debian/grace.git
+Homepage: https://plasma-gate.weizmann.ac.il/Grace
+
+Package: grace
+Architecture: any
+Depends: fontconfig,
+         fonts-urw-base35,
+         sensible-utils,
+         xterm,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: xfonts-100dpi | xfonts-75dpi | xfonts-100dpi-transcoded | xfonts-75dpi-transcoded
+Suggests: ghostscript, texlive-extra-utils
+Description: XY graphing and plotting tool
+ Grace is a point-and-click tool that allows the user to draw X-Y plots.
+ This is the program formerly known as Xmgr.
+ .
+ A few of its features are: User defined scaling, tick marks, labels,
+ symbols, line styles, colors, polynomial regression, splines, running
+ averages, DFT/FFT, cross/auto-correlation, batch mode for unattended
+ plotting, and hardcopy support for PostScript, FrameMaker and several image
+ formats.

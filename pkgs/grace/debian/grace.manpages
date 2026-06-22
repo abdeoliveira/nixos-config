@@ -1,0 +1,8 @@
+debian/fdf2fit.1
+debian/grace-thumbnailer.1
+debian/update-grace-fonts.8
+usr/share/grace/doc/convcal.1
+usr/share/grace/doc/grace.1
+usr/share/grace/doc/gracebat.1
+usr/share/grace/doc/grconvert.1
+usr/share/grace/doc/xmgrace.1

@@ -1,0 +1,61 @@
+!
+! To change UI defaults, copy this file into your ~/.Xresources, or provide
+! it globally by copying to /etc/X11/app-defaults/XMgrace, and edit entries
+! to your liking.
+!
+XMgrace.consoleDialog*text.columns: 72
+XMgrace.consoleDialog*text.rows: 5
+XMgrace*background: #e5e5e5
+XMgrace*foreground: #000000
+XMgrace*XbaeMatrix.oddRowBackground: #cccccc
+XMgrace*XbaeMatrix.evenRowBackground: #cfe7e7
+XMgrace*XbaeMatrix.textBackground: #cfe7e7
+XMgrace*XbaeMatrix.allowColumnResize: False
+XMgrace*XbaeMatrix.allowRowResize: False
+XMgrace*XbaeMatrix.showArrows: True
+XMgrace*fontTable.evenRowBackground: #e5e5e5
+XMgrace*XmPushButton.background: #b0c4de
+XMgrace*XmMenuShell*XmPushButton.background: #e5e5e5
+XMgrace*XmText*background: #cfe7e7
+XMgrace*XmToggleButton.selectColor: #ff0000
+XMgrace*XmToggleButton.fillOnSelect: true
+XMgrace*XmSeparator.margin: 0
+XMgrace*XmHTML.background: #ffffff
+XMgrace*XmHTML.foreground: #000000
+XMgrace*XmHTML.width: 600
+XMgrace*XmHTML.height: 500
+XMgrace*mainWin.shadowThickness: 0
+XMgrace*mainWin.menuBar.shadowThickness: 1
+XMgrace*menuBar*tearOffModel: XmTEAR_OFF_ENABLED
+XMgrace*dragInitiatorProtocolStyle: XmDRAG_NONE
+XMgrace*dragReceiverProtocolStyle:  XmDRAG_NONE
+XMgrace*fileMenu.newButton.acceleratorText: Ctrl+N
+XMgrace*fileMenu.newButton.accelerator: Ctrl<Key>n
+XMgrace*fileMenu.openButton.acceleratorText: Ctrl+O
+XMgrace*fileMenu.openButton.accelerator: Ctrl<Key>o
+XMgrace*fileMenu.saveButton.acceleratorText: Ctrl+S
+XMgrace*fileMenu.saveButton.accelerator: Ctrl<Key>s
+XMgrace*fileMenu.exitButton.acceleratorText: Ctrl+Q
+XMgrace*fileMenu.exitButton.accelerator: Ctrl<Key>q
+XMgrace*fileMenu.printButton.acceleratorText: Ctrl+P
+XMgrace*fileMenu.printButton.accelerator: Ctrl<Key>p
+XMgrace*helpMenu.onContextButton.acceleratorText: Shift+F1
+XMgrace*helpMenu.onContextButton.accelerator: Shift<Key>F1
+XMgrace*readHistoryFSB*pattern: *.com
+XMgrace*openProjectFSB*pattern: *.agr
+XMgrace*saveProjectFSB*pattern: *.agr
+XMgrace*readSetsFSB*pattern: *.dat
+XMgrace*writeSetsFSB*pattern: *.dat
+XMgrace*readParametersFSB*pattern: *.par
+XMgrace*writeParametersFSB*pattern: *.par
+XMgrace*selectNetcdfFileFSB*pattern: *.nc
+XMgrace*selectHotLinkFileFSB*pattern: *.dat
+XMgrace*openFitParameterFileFSB*pattern: *.fit
+XMgrace*saveFitParameterFileFSB*pattern: *.fit
+XMgrace*mainWin.width: 680
+XMgrace*mainWin.height: 700
+XMgrace*fontList:-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-*
+XMgrace.consoleDialog*text.fontList:-*-courier-medium-r-normal-*-12-*-*-*-*-*-*-*
+XMgrace*HContainer.marginHeight: 3
+XMgrace*VContainer.marginHeight: 3
+

@@ -1,0 +1,41 @@
+grace for Debian
+----------------
+
+This package does not support PDF output directly since the PDF library is not
+free software. There is an easy workaround - just use the epstopdf script from
+the texlive-font-utils package.
+
+If you have installed the PDF library, you can modify the file debian/rules in
+the source package (just remove --disable-pdfdrv) and recompile grace (debuild
+-b).
+
+Starting with version 5.1.22-7, the package automatically recognizes all
+installed type1 fonts, and update its list automatically whenever new fonts
+are installed.  This should give you far more options than just the default 14
+fonts.
+
+WARNING!
+
+If you plan to exchange your files with other people (especially non Debian
+users) restrict yourself to standard postscript fonts because grace is not able
+to embed non standard fonts in its postscript output.  Please do not try to
+report any bugs like missing text in your postscript files! Font embedding is
+planned for grace version 5.2, but that release is on indefinite hold.
+
+But there seems be a workaround using ghostscript:
+
+gs -q -dNOPAUSE -dBATCH -sDEVICE=pswrite -sOutputFile=output.ps input.ps
+
+That will embed all needed fonts in output.ps. In some cases the output file
+may even be smaller than the original one. Please test that and report problems
+and/or success.
+
+
+The maintaince of the Debian packages is coordinated via salsa:
+
+https://salsa.debian.org/debian/grace
+
+
+Torsten Werner <twerner@debian.org>  Dec 17 2003
+Ionut Georgescu <george@pks.mpg.de>  Sep 11 2005
+Nicholas Breen <nbreen@debian.org>   Jun 06 2010

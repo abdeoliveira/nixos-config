@@ -1,0 +1,17 @@
+Description: Allow dh_strip to control binary stripping, not globally
+Author: Nicholas Breen
+Bug: http://bugs.debian.org/614102
+Forwarded: not-needed
+Index: grace-5.1.22/src/Makefile
+===================================================================
+--- grace-5.1.22.orig/src/Makefile	2011-02-19 14:16:56.402270500 -0800
++++ grace-5.1.22/src/Makefile	2011-02-19 14:17:05.710765873 -0800
+@@ -61,7 +61,7 @@
+ 
+ install : $(GRACE)
+ 	$(MKINSTALLDIRS) $(DESTDIR)$(GRACE_HOME)/bin
+-	$(INSTALL_PROGRAM) -s $(GRACE) $(DESTDIR)$(GRACE_HOME)/bin/$(GRACE)
++	$(INSTALL_PROGRAM) $(GRACE) $(DESTDIR)$(GRACE_HOME)/bin/$(GRACE)
+ 	cd $(DESTDIR)$(GRACE_HOME)/bin; $(RM) $(GRBATCH); $(LN_S) $(GRACE) $(GRBATCH)
+ 
+ tests : dummy

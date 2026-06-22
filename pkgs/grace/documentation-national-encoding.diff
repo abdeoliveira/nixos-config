@@ -1,0 +1,16 @@
+Description: In documentation, update remaining ISO-8859 to UTF-8
+Index: grace-git/doc/Tutorial.html
+===================================================================
+--- grace-git.orig/doc/Tutorial.html
++++ grace-git/doc/Tutorial.html
+@@ -220,8 +220,8 @@ and the best thing to do is to experimen
+ <P>For now, let's start by labelling the axes. Suppose these curves represent
+ the number of tasks a processor runs as the function of the number of users.
+ To make it more interesting, assume we are doing this in Quebec. That means
+-we want to plot "Nombre de t‚ches vs. nombre d'usagers". Note the importance
+-of having the accent over the a in t‚ches or we would end up plotting the number
++we want to plot "Nombre de t√¢ches vs. nombre d'usagers". Note the importance
++of having the accent over the a in t√¢ches or we would end up plotting the number
+ of stains which is entirely another case. Bring up the Axes pop up, select
+ the Y axis, and click in the space to enter the label string of the axis label.
+ Start typing Nombre de t. At this point we need to enter a accented letter,

@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=0.9.5
+Type=Application
+
+Exec=xmgrace %f
+Icon=grace
+
+Name=Grace
+
+Comment=An XY plotting tool
+
+Categories=Education;Math;Science;Motif;
+MimeType=application/x-grace
+
+Terminal=false
+NoDisplay=false
+StartupNotify=false
+StartupWMClass=XMGrace

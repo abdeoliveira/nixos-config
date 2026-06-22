@@ -1,0 +1,10 @@
+usr/bin/xmgrace		usr/bin/grace
+usr/bin/xmgrace		usr/bin/gracebat
+usr/share/doc/grace	usr/share/grace/doc
+usr/share/pixmaps/grace.png	usr/share/icons/hicolor/48x48/apps/grace.png
+usr/share/pixmaps/grace.png	usr/share/icons/hicolor/48x48/mimetypes/application-x-grace.png
+usr/share/icons/hicolor/16x16/apps/grace.png usr/share/icons/hicolor/16x16/mimetypes/application-x-grace.png
+usr/share/icons/hicolor/22x22/apps/grace.png usr/share/icons/hicolor/22x22/mimetypes/application-x-grace.png
+usr/share/icons/hicolor/24x24/apps/grace.png usr/share/icons/hicolor/24x24/mimetypes/application-x-grace.png
+usr/share/icons/hicolor/32x32/apps/grace.png usr/share/icons/hicolor/32x32/mimetypes/application-x-grace.png
+usr/share/icons/hicolor/scalable/apps/grace.svg usr/share/icons/hicolor/scalable/mimetypes/application-x-grace.svg

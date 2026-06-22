@@ -1,0 +1,16 @@
+gracerc.diff 
+manpages.diff
+tmpnam_to_mkstemp.diff 
+fftw3.diff
+netcdf-build-fix.diff
+netbook_small_screen_2.diff
+non-resizable-dialogs.diff
+nonlinear_extended.diff
+binary_nostrip.diff
+source-hardening.diff
+t1lib-general.diff
+font-extension-t1.diff
+documentation-national-encoding.diff
+grconvert-tirpc.diff
+configure-implicit-declarations.diff
+reproducible-builds.diff

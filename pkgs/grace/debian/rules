@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/pkg-info.mk
+include /usr/share/dpkg/vendor.mk
+export DEB_VERSION DEB_VENDOR
+
+export DEB_CFLAGS_MAINT_APPEND = -std=gnu17
+export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	./configure \
+	--enable-grace-home=/usr/share/grace \
+	--with-editor="xterm -e sensible-editor" \
+	--with-helpviewer="sensible-browser %s" \
+	--with-f77=gfortran \
+	--with-bundled-t1lib \
+	--disable-pdfdrv \
+	--without-bundled-xbae
+
+# "make check" is more of a series of demos, requires X
+override_dh_auto_test:
+
+override_dh_auto_install:
+	dh_auto_install --destdir debian/tmp
+
+override_dh_install:
+	# install the icons
+	themedir=$(CURDIR)/debian/grace/usr/share/icons/hicolor;\
+	for x in 16 22 24 32; do \
+		install -D -m 644 -o root -g root debian/icons/grace$${x}.png \
+			$${themedir}/$${x}x$${x}/apps/grace.png; \
+	done
+	install -m 755 -o root -g root debian/update-grace-fonts \
+		$(CURDIR)/debian/grace/usr/sbin/update-grace-fonts
+	dh_install
+
+# Upstream Makefile needs configure run even for clean target.  Override it,
+# and ignore errors if they occur -- they come from the configure-check, not
+# from the missing Makefile that is the common case.
+override_dh_auto_clean:
+	$(MAKE) --keep-going --ignore distclean
+
+# Don't compress example graph files.
+override_dh_compress:
+	dh_compress -X.agr

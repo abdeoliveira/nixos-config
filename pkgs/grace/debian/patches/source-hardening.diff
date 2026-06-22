@@ -1,0 +1,68 @@
+Description: Permit compilation with hardening flags in dpkg >= 1.16.0
+Origin: vendor
+Author: Nicholas Breen
+Index: grace/src/utils.c
+===================================================================
+--- grace.orig/src/utils.c
++++ grace/src/utils.c
+@@ -1171,12 +1171,12 @@ void stufftext(char *s)
+     if (inwin) {
+         stufftextwin(s);
+     } else {
+-        printf(s);
++        printf("%s", s);
+     }
+ #endif
+     /* log results to file */
+     if (resfp != NULL) {
+-	fprintf(resfp, s);
++	fprintf(resfp, "%s", s);
+     }
+ }
+ 
+@@ -1222,7 +1222,9 @@ int set_workingdir(const char *wd)
+     char buf[GR_MAXPATHLEN];
+     
+     if (wd == NULL) {
+-        getcwd(workingdir, GR_MAXPATHLEN - 1);
++        if (getcwd(workingdir, GR_MAXPATHLEN - 1) == NULL) {
++	    return RETURN_FAILURE;
++        }
+         if (workingdir[strlen(workingdir)-1] != '/') {
+             strcat(workingdir, "/");
+         }
+@@ -1389,7 +1391,7 @@ void clear_dirtystate(void)
+     update_app_title();
+ }
+ 
+-void lock_dirtystate(flag)
++void lock_dirtystate(int flag)
+ {
+     dirtystate_lock = flag;
+ }
+Index: grace/src/svgdrv.c
+===================================================================
+--- grace.orig/src/svgdrv.c
++++ grace/src/svgdrv.c
+@@ -745,7 +745,7 @@ void svg_puttext(VPoint vp, char *s, int
+             -tm->cxy, -tm->cyy,
+             scaleval(vp.x), scaleval(vp.y));
+ 
+-    fprintf(prstream, escape_specials((unsigned char *) s, len));
++    fprintf(prstream, "%s", escape_specials((unsigned char *) s, len));
+ 
+     fprintf(prstream, "</text>\n");
+ }
+Index: grace/auxiliary/Makefile
+===================================================================
+--- grace.orig/auxiliary/Makefile
++++ grace/auxiliary/Makefile
+@@ -22,7 +22,7 @@ distclean : clean
+ devclean : distclean
+ 
+ convcal$(EXE) : convcal.c
+-	$(CC) $(CFLAGS0) $(CPPFLAGS) -o $@ convcal.c $(NOGUI_LIBS)
++	$(CC) $(CFLAGS0) $(CPPFLAGS) -Wl,-z,relro -Wl,-z,now -o $@ convcal.c $(NOGUI_LIBS)
+ 
+ install : $(AUXILIARIES) $(PROGRAMS) $(SCRIPTS)
+ 	$(MKINSTALLDIRS) $(DESTDIR)$(GRACE_HOME)/auxiliary

@@ -1,0 +1,73 @@
+Description: Various Debian-specific additions and typo fixes to Grace manpages
+Origin: vendor
+Forwarded: not-needed
+Index: grace/doc/grace.1
+===================================================================
+--- grace.orig/doc/grace.1
++++ grace/doc/grace.1
+@@ -1,5 +1,4 @@
+ .TH GRACE 1 "Jan 28, 2007"
+-.LO 1
+ .SH NAME
+ grace \- command line interface
+ .br
+@@ -168,6 +167,10 @@ Add timestamp to plot
+ .TP
+ .B "\-version"                             
+ Show the program version, registered devices and build time configuration information.
++
++[DEBIAN] Direct PDF output has been disabled since the PDF library is not
++free software. There is an easy workaround - just use the epstopdf script from
++the texlive-font-utils package.
+ .TP
+ .BI "\-viewport " "xmin ymin xmax ymax"      
+ Set the viewport for the current graph
+Index: grace/doc/grconvert.1
+===================================================================
+--- grace.orig/doc/grconvert.1
++++ grace/doc/grconvert.1
+@@ -1,7 +1,6 @@
+-.TH GRCONVERT 1
+-.LO 1
++.TH GRCONVERT 1 "Jun 13, 2008"
+ .SH NAME
+-grconvert
++grconvert \- convert Xmgr 4.0 files to Grace 5.x format
+ 
+ .SH DESCRIPTION
+ grconvert converts old binary project files from Xmgr 4.0 to
+Index: grace/doc/convcal.1
+===================================================================
+--- grace.orig/doc/convcal.1
++++ grace/doc/convcal.1
+@@ -79,8 +79,8 @@ markers from fortran are supported in ad
+ They are computed according to a customizable reference date.
+ The default value is given by the REFDATE constant in the source file.
+ You can change this value as you want before compiling, and you can
+-change it at will using the -r command line option. The default
+-value in the distributed file is "-4713-01-01T12:00:00", it is a
++change it at will using the \-r command line option. The default
++value in the distributed file is "\-4713-01-01T12:00:00", it is a
+ classical reference for astronomical events (note that the '-' is
+ used here both as a unary minus and as a separator).
+ 
+@@ -101,8 +101,8 @@ prints the help message on stderr and ex
+ \fB\-i\fR \fIformat\fR
+ set user's choice for input format, supported formats are iso, european, us,
+ days, seconds and nohint.  At the beginning the input format is nohint, which
+-means the program try to guess the format by itself, if the user's choice does
+-not allow to parse the date, other formats are tried
++means the program will try to guess the format by itself, if the user's choice does
++not allow it to parse the date, other formats are tried
+ .TP
+ \fB\-o\fR \fIformat\fR
+ force output format, supported formats are iso, european, us, days, seconds
+@@ -113,7 +113,7 @@ iso8601 for dates read in numerical form
+ \fB\-r\fR \fIdate\fR
+ set reference date (the date is read using the current input format) at the
+ beginning the reference is set according to the REFDATE constant in the code,
+-which is -4713-01-01T12:00:00 in the distributed file.
++which is \-4713-01-01T12:00:00 in the distributed file.
+ .TP
+ \fB\-w\fR \fIyear\fR
+ set the wrap year to year

@@ -1,0 +1,16 @@
+usr/share/grace/bin/xmgrace		usr/bin
+usr/share/grace/bin/fdf2fit		usr/bin/
+usr/share/grace/bin/convcal		usr/bin/
+usr/share/grace/bin/grconvert		usr/bin/
+usr/share/grace/lib/libgrace_np.a	usr/lib
+usr/share/grace/include/grace_np.h	usr/include
+usr/share/grace/fonts/enc
+usr/share/grace/templates
+usr/share/grace/gracerc*
+usr/share/grace/auxiliary
+../grace.desktop			usr/share/applications
+../icons/grace.png			usr/share/pixmaps
+../grace.svg				usr/share/icons/hicolor/scalable/apps
+../grace-thumbnailer			usr/bin
+../grace.thumbnailer		usr/share/thumbnailers
+../XMgrace.resources                    usr/share/doc/grace

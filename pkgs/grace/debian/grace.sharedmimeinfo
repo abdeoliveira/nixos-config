@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-grace">
+    <comment>Grace Project File</comment>
+    <comment xml:lang="de">Grace Projektdatei</comment>
+    <comment xml:lang="ro">Proiect Grace</comment>
+    <glob pattern="*.agr"/>
+    <magic priority="50">
+      <match type="string" offset="0" value="# Grace project file"/>
+    </magic>
+  </mime-type>
+</mime-info>

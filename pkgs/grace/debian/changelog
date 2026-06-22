@@ -1,0 +1,941 @@
+grace (1:5.1.25-19) unstable; urgency=medium
+
+  * reproducible-builds.diff: Move towards fully reproducible builds, mostly
+    from system info in the help panel - for example, replacing the build
+    time with SOURCE_DATE_EPOCH.
+  * Update Standards-Version to 4.7.4.  No changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Wed, 17 Jun 2026 18:44:32 -0700
+
+grace (1:5.1.25-18) unstable; urgency=medium
+
+  * Build with -std=gnu17. (Closes: #1096769)
+  * Update S-V to 4.7.2.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 12 Apr 2025 15:17:51 -0700
+
+grace (1:5.1.25-17) unstable; urgency=medium
+
+  * d/patches/configure-implicit-declarations.diff: Extend to cover a
+    silent failure on XmHTML detection.  Thanks to Graham Inggs for
+    catching the error.  (Closes: #1079618)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 25 Aug 2024 16:29:22 -0700
+
+grace (1:5.1.25-16) unstable; urgency=medium
+
+  * Properly define variable type in lock_dirtystate.  (Closes: #1077358)
+  * grace.desktop: Define StartupWMClass.  (LP: #2030502)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 28 Jul 2024 11:30:37 -0700
+
+grace (1:5.1.25-15) unstable; urgency=medium
+
+  * d/patches/t1lib-general.diff: Update with a pair of explicit int
+    declarations in type1/regions.c.  (Closes: #1075038)
+  * Update Standards-Version to 4.7.0, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 06 Jul 2024 12:38:02 -0700
+
+grace (1:5.1.25-14) unstable; urgency=medium
+
+  * d/patches/configure-implicit-declarations.diff: Patch configure script
+    to compile all tests with new default CFLAGS in dpkg 1.22.6.  Thanks to
+    Lucas Nussbaum for the report, and Ryan Carsten Schmidt and Macports
+    contributors for background and their own patch.  (Closes: #1066669)
+  * Assorted housekeeping:
+    - d/control: Bump Standards-Version to 4.6.2, no changes required.
+    - d/copyright: Update years.
+    - d/grace.lintian-overrides: Restore embedded-library override.
+
+ -- Nicholas Breen <nbreen@debian.org>  Wed, 13 Mar 2024 19:11:39 -0700
+
+grace (1:5.1.25-13) unstable; urgency=medium
+
+  * control, update-grace-fonts: Migrate from gsfonts to fonts-urw-base35,
+    and update filename mappings for the core PostScript fonts.
+  * Migrate thumbnailer from gconf2 to current system.
+
+ -- Nicholas Breen <nbreen@debian.org>  Mon, 29 Aug 2022 18:41:10 -0700
+
+grace (1:5.1.25-12) unstable; urgency=medium
+
+  [Debian Janitor bot]
+  * Remove constraints unnecessary since buster:
+    + Build-Depends: Drop versioned constraint on libxbae-dev.
+    + grace: Drop versioned constraint on gsfonts in Depends.
+
+  [ Nicholas Breen ]
+  * d/watch: Exclude non-numeric versions.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 10 Oct 2021 09:20:17 -0700
+
+grace (1:5.1.25-11) unstable; urgency=medium
+
+  * d/watch: Refresh with new download location (thanks, Evgeny!).
+
+ -- Nicholas Breen <nbreen@debian.org>  Mon, 13 Sep 2021 17:34:59 -0700
+
+grace (1:5.1.25-10) unstable; urgency=medium
+
+  * Build grconvert against TI-RPC instead of the now-removed glibc RPC.
+    (Closes: #994003)
+  * d/watch: Comment out - upstream FTP server offline indefinitely.
+  * d/rules: Remove gconf override.
+  * d/control: Update Standards-Version to 4.6.0, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 11 Sep 2021 10:48:22 -0700
+
+grace (1:5.1.25-9) unstable; urgency=medium
+
+  * Housekeeping update prior to the bullseye release.
+  * Update S-V to 4.5.1 and debhelper to compat 13.
+    - Tidy up various dh_* files, and remove duplicated manpages, to
+      avoid dh_missing failures.
+  * Add Depends: on sensible-utils, for sensible-browser and -editor.
+  * Relocate example files to /usr/share/doc/grace/examples.
+  * d/patches/documentation-national-encoding.diff: New patch to convert
+    remaining ISO-8859-1 documentation to UTF-8.
+  * Janitor bot fixes: correct a day-of-week error in the changelog,
+    update to https:// link for Grace homepage.
+  * d/control: Set an explicit Rules-Requires-Root: binary-targets, needed
+    for changing file ownership in the install step.
+  * d/rules: Remove linker flags that are now the toolchain default.
+  * Remove obsolete preinst script, only needed to clean up after the
+    long-gone defoma.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 20 Dec 2020 12:58:08 -0800
+
+grace (1:5.1.25-8) unstable; urgency=medium
+
+  * Stop shipping a partial Xresources file; instead, supply all available
+    default settings in an example file, which interested users can merge
+    into their ~/.Xresources as a whole.  (Closes: #955770)
+  * Update Standards-Version to 4.5.0, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 19 Apr 2020 14:52:41 -0700
+
+grace (1:5.1.25-7) unstable; urgency=medium
+
+  [ Ondřej Nový ]
+  * d/copyright: Use https protocol in Format field
+  * d/changelog: Remove trailing whitespaces
+
+  [ Nicholas Breen ]
+  * d/patches/font-extension-t1.diff: Search for .t1 as a font file
+    extension (as seen in newer versions of Ghostscript), in addition to
+    the traditional .pfa/.pfb extensions.  Thanks to Carlo Segre for the
+    thorough bug report.  (Closes: #934662)
+  * Update to Standards-Version 4.4.0 and debhelper compat 12.
+
+ -- Nicholas Breen <nbreen@debian.org>  Thu, 15 Aug 2019 20:00:53 -0700
+
+grace (1:5.1.25-6) unstable; urgency=medium
+
+  * Move VCS repo to salsa.debian.org.
+  * Bump to Standards-Version 4.1.4, debhelper compat 11.
+  * Eliminate several hardcoded color settings, moving them to an Xresources
+    configuration file, allowing user overrides.  Patch courtesy of Denis
+    Danilov.  (Closes: #727796)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 28 Apr 2018 10:50:28 -0700
+
+grace (1:5.1.25-5) unstable; urgency=medium
+
+  * Typo fix in control ("gconf" -> "gconf2").
+
+ -- Nicholas Breen <nbreen@debian.org>  Fri, 30 Jun 2017 09:16:09 -0700
+
+grace (1:5.1.25-4) unstable; urgency=medium
+
+  * Don't run dh_gconf; schemas are now registered by triggers and the
+    thumbnailing is an optional feature, so a hard Depends: is not
+    desirable.  Instead, add an explicit Suggests: gconf2.
+    (Closes: #863872)
+  * Update Standards-Version to 4.0.0 and bump debhelper compat level to 10,
+    no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 18 Jun 2017 13:04:04 -0700
+
+grace (1:5.1.25-3) unstable; urgency=medium
+
+  * Drop B-D alternative on libpng12-dev.  (Closes: #810181)
+  * Update Standards-Version to 3.9.8, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Mon, 23 Jan 2017 09:47:16 -0800
+
+grace (1:5.1.25-2) unstable; urgency=medium
+
+  * Remove grace.menu (and grace-menu.xpm) per TC decision #741573.
+  * Update Standards-Version to 3.9.7, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 28 Feb 2016 16:18:39 -0800
+
+grace (1:5.1.25-1) unstable; urgency=medium
+
+  * New upstream release.
+    - No longer clears set comments on load.  (Closes: #775749)
+  * copyright: Add 2015 where relevant, disambiguate short license names.
+
+ -- Nicholas Breen <nbreen@debian.org>  Tue, 17 Feb 2015 09:50:49 -0800
+
+grace (1:5.1.24-3) unstable; urgency=medium
+
+  * Switch to "interest-noawait" triggers to avoid a possible configuration
+    loop with gsfonts.  (Closes: #774558)
+  * Update Standards-Version to 3.9.6, no changes required.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sun, 04 Jan 2015 09:29:02 -0800
+
+grace (1:5.1.24-2) unstable; urgency=medium
+
+  * Add Build-Depends on texlive-fonts-recommended.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 13 Sep 2014 16:53:32 -0700
+
+grace (1:5.1.24-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Remove patches/cephes-license.diff (incorporated upstream), rebase
+      other patches as necessary.
+    - Fixes input of non-ASCII text under UTF-8 locales. (LP: #1276783)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 13 Sep 2014 15:48:16 -0700
+
+grace (1:5.1.23-9) unstable; urgency=medium
+
+  * copyright: Convert to DEP-5 format and overhaul information.  Include
+    e-mail from cephes author regarding its licensing; thanks to Helen
+    Faulkner for driving that for the labplot packages many years ago.
+    (Closes: #758237)
+  * patches/cephes-license.diff: Additionally add cephes/COPYING to the
+    unpacked source tree.
+  * README.Debian: Update epstopdf information and alioth URL.
+
+ -- Nicholas Breen <nbreen@debian.org>  Fri, 15 Aug 2014 17:33:55 -0700
+
+grace (1:5.1.23-8) unstable; urgency=medium
+
+  * Upload to unstable with libxmhtml-dev transition, no further changes.
+
+ -- Nicholas Breen <nbreen@debian.org>  Thu, 26 Jun 2014 20:58:11 -0700
+
+grace (1:5.1.23-7) experimental; urgency=medium
+
+  * control: Transition to libxmhtml-dev, currently only in experimental.
+
+ -- Nicholas Breen <nbreen@debian.org>  Mon, 16 Jun 2014 18:02:18 -0700
+
+grace (1:5.1.23-6) unstable; urgency=medium
+
+  * control: Also add in Build-Deps for libxt-dev, libxext-dev, libxau-dev,
+    libxaw7-dev.  Hooray for unspecified transitive dependencies.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 29 Mar 2014 11:20:00 -0700
+
+grace (1:5.1.23-5) unstable; urgency=medium
+
+  * control: Reverse order of xmhtml1-dev | libxmhtml-dev Build-Dep.
+    (Closes: #742890)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 29 Mar 2014 10:36:07 -0700
+
+grace (1:5.1.23-4) unstable; urgency=medium
+
+  * control: XmHTML development package will change to libxmhtml-dev soon;
+    modify Build-Depends to libxmhtml-dev | xmhtml1-dev in preparation.
+  * rules: Switch back to embedded convenience copy of T1lib.
+    (Closes: #638760)
+    - control: Drop B-D on t1lib-dev.
+    - README.source: add some notes about this.
+    - patches/t1lib-general.diff: Incorporate all available patches from
+      former Debian distribution of T1lib.
+    - grace.lintian-overrides: Suppress relevant embedded-library error.
+  * control:  Update Standards-Version to 3.9.5, no changes required.
+  * grace.lintian-overrides: Drop workaround for lintian #673112.
+
+ -- Nicholas Breen <nbreen@debian.org>  Thu, 27 Mar 2014 20:12:01 -0700
+
+grace (1:5.1.23-3) unstable; urgency=low
+
+  * rules: Automatically update config.{sub,guess} at build time.  Add
+    immediate symbol binding hardening flag.
+  * control: Fix Vcs-* links.
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 28 Sep 2013 13:18:54 -0700
+
+grace (1:5.1.23-2) unstable; urgency=low
+
+  * Move package to Alioth collab-maint.  control: Update Vcs-Svn header.
+  * Lesstif -> Motif transition: Switch Build-Depends from lesstif2-dev to
+    libmotif-dev, and add versioned B-Ds on the first Motif-enabled builds
+    of libxbae-dev and xmhtml1-dev.  (Closes: #717644)
+
+ -- Nicholas Breen <nbreen@debian.org>  Sat, 24 Aug 2013 10:43:57 -0700
+
+grace (1:5.1.23-1) unstable; urgency=low
+
+  * New upstream release.  (Closes: #689532)
+    - Drop the following patches incorporated upstream: rmserror.diff,
+      motiflockup.diff, libpng-1.5.diff.
+    - Update netcdf-build-fix.diff, fftw3.diff to apply cleanly.
+  * patches/source-hardening.diff: Fix mangled SVG output.  Thanks again
+    to Alex Valvanis.  (Closes: #690858)
+  * debian/watch: Add dversionmangle to remove Debian epoch from check.
+  * control: Set Standards-Version 3.9.4, no changes required.
+  * Remove Lintian override from previous upload, as the relevant Lintian
+    bug has been fixed.
+
+ -- Nicholas Breen <nbreen@debian.org>  Wed, 31 Oct 2012 17:09:21 -0700
+
+grace (1:5.1.22-13) unstable; urgency=low
+
+  * rules: Convert from CDBS to debhelper v7+ style.  Remove special case
+    for mips(el), the underlying binutils bug has been fixed.
+  * control:
+    - Update maintainer address.
+    - Drop Build-Depends on cdbs.
+    - Bump Standards-Version to 3.9.3, no changes required.
+    - Swap order of libpng B-Ds for libpng15 transition.  (Closes: #662358)
+    - Add Recommends: on xfonts-{100,75}dpi to ensure proper operation on
+      Ubuntu systems.  (Closes: #670613)
+    - Move to debhelper version 9 (also updating debian/compat).
+  * grace.preinst, grace.prerm: Use explicit "set -e" outside the shebang.
+  * grace.docs: Specifically install README.
+  * patches/source-hardening.diff: Force -Wl,-z,relro for /usr/bin/convcal.
+  * grace.lintian-overrides: Overrides for two false positives in Lintian
+    2.5.7, see #673112 and #673352.
+  * copyright: Point symlink to GPL-2 specifically, although later versions
+    are permitted.
+
+ -- Nicholas Breen <nbreen@debian.org>  Thu, 17 May 2012 19:26:48 -0700
+
+grace (1:5.1.22-12) unstable; urgency=low
+
+  * patches/source-hardening.diff: Fix three format-security and one
+    unused-result errors, allowing compilation with hardening flags.
+    (Closes: #643400)
+
+ -- Nicholas Breen <nbreen@ofb.net>  Sat, 01 Oct 2011 16:13:09 -0700
+
+grace (1:5.1.22-11) unstable; urgency=low
+
+  * patches/libpng-1.5.diff: Support for libpng 1.5 transition.  Patch
+    provided by Nobuhiro Iwamatsu.  (Closes: #636970)
+
+ -- Nicholas Breen <nbreen@ofb.net>  Tue, 16 Aug 2011 14:07:25 -0700
+
+grace (1:5.1.22-10) unstable; urgency=low
+
+  * patches/binary_nostrip.diff: Don't strip the grace binary unconditionally,
+    but instead let dh_strip handle the job.  This permits generation of
+    debug packages.  (Closes: #614102)
+  * rules, control: Compile against external Xbae library, instead of bundled.
+    (Closes: #614152)
+  * control: Increment Standards-Version to 3.9.2, no changes necessary.
+    Remove antique "Replaces: xmgr" stanza, as xmgr was removed from the
+    archive in 2005.  Remove leading article from short description.
+  * rules: Link with --as-needed, which clears out several unnecessary
+    dependencies from overly opportunistic linking, including libxp6.
+    (Closes: #623641)
+
+ -- Nicholas Breen <nbreen@ofb.net>  Mon, 25 Apr 2011 14:46:38 -0700
+
+grace (1:5.1.22-9) unstable; urgency=low
+
+  * copyright: Update contact info and years.
+  * grace.menu: Move from Science/Mathematics to Science/Data Analysis.
+    Change hints to longtitle.  (Closes: #606965)
+  * patches/tmpnam_to_mkstemp.diff: Create temporary files in /tmp rather
+    than working directory.
+  * rules: Hardcode use of xterm instead of x-terminal-emulator to work
+    around the auto-backgrounding "feature" of konsole/gnome-terminal.
+    (Closes: #601829)
+    - control: Add Depends: on xterm.
+  * patches/*: Add DEP-3 headers.  Rename grace_manpage_debian_warning.diff
+    to the more general manpages.diff.
+  * grace.overrides: Override lintian empty directory warning on
+    /usr/share/fonts/type1, which is populated in the postinst.
+
+ -- Nicholas Breen <nbreen@ofb.net>  Sun, 23 Jan 2011 16:07:14 -0800
+
+grace (1:5.1.22-8) unstable; urgency=low
+
+  * control: Increment Standards-Version to 3.9.1, no changes necessary.
+  * patches/nonlinear_extended.diff: Revision by Nicola Ferralis to add
+    Weibull probability distribution fitting.  (Closes: #589965)
+
+ -- Nicholas Breen <nbreen@ofb.net>  Tue, 27 Jul 2010 11:02:37 -0700
+
+grace (1:5.1.22-7) unstable; urgency=low
+
+  * Replace defoma font management with new /usr/sbin/update-grace-fonts
+    trigger.  Many thanks to Kenshi Muto for the implementation.
+    (Closes: #542335, #583956, #583964)
+    - README.Debian: Update description of font handling, eliminate all
+      references to defoma.
+    - control: Depends -= defoma, += fontconfig.
+  * grace.preinst, grace.postinst: Additionally remove code only needed for
+    upgrades from truly antique (pre-oldstable) releases.
+  * patches/nonlinear_extended.diff: Add menu entry for Doniach-Sunjic peak
+    fitting.  (Closes: #583966)
+  * Backed out subscript-superscript-scale.diff pending coordination with
+    upstream, to avoid distro-specific incompatibilities.
+  * compat: Increment to debhelper v7.
+  * Convert to source format 3.0 (quilt).  Replace uuencoded icons with
+    their decoded PNG forms; clean out the associated decoding and patching
+    logic from rules, and remove Build-Depends on sharutils and quilt.
+
+ -- Nicholas Breen <nbreen@ofb.net>  Sun, 06 Jun 2010 14:36:06 -0700
+
+grace (1:5.1.22-6) unstable; urgency=low
+
+  * rules: Run sensible-editor inside x-terminal-emulator.
+    (Closes: #582154) (LP: #582399)
+  * New patches:
+    - non-resizable-dialogs.patch: Set certain dialog boxes to fixed sizes,
+      preventing display errors and possible concealment of action buttons.
+      (Closes: #253087)
+    - superscript-subscript-scale.patch: Adjust {sub,super}script scaling to
+      bring them more in line with LaTeX's style.  (Closes: #279359)
+    - nonlinear_extended.diff: Add support for non-linear Lorentian and
+      Gaussian fitting.  Written and contributed by Nicola Ferralis.
+      (Closes: #578435) (LP: #535459)
+  * control: Add Build-Depends on texlive-latex-{base,recommended} for
+    regeneration of DVI documentation.
+
+ -- Nicholas Breen <nbreen@ofb.net>  Wed, 26 May 2010 19:06:09 -0700
+
+grace (1:5.1.22-5) unstable; urgency=low
+
+  * Compile with -g0 on mips and mipsel, as a workaround for a FTBFS
+    caused by the linker bug described in #519006.
+
+ -- Nicholas Breen <nbreen@ofb.net>  Tue, 16 Mar 2010 14:09:34 -0700
+
+grace (1:5.1.22-4) unstable; urgency=low
+
+  * changelog: Fix typo in previous entry.  (Closes: #568675)
+  * control: Increment Standards-Version to 3.8.4.
+  * patches/motiflockup.patch: Stack on another workaround for the cursor
+    grab problem.  (Closes: #567323)
+  * patches/rmsdiff.patch: Replace with upstream's version.
+
+ -- Nicholas Breen <nbreen@ofb.net>  Mon, 15 Mar 2010 20:16:29 -0700
+
+grace (1:5.1.22-3) unstable; urgency=low
+
+  * debian/control:
+    - Adopt the package.  (Closes: #459483)
+    - Drop Suggests on grace-utils and Build-Depends option on g77, both no
+      longer in the archive.
+    - Bump Standards-Version to 3.8.3.  No packaging changes necessary.
+    - Remove Xs- prefix from Vcs-Svn.
+  * debian/rules: Remove call to dh_desktop.
+  * debian/grace.pre{inst,rm}: Set -e.
+  * Add trivial manpage for grace-thumbnailer(1), links to grace(1).
+  * Add debian/README.source.
+  * New patches:
+    - rmsdiff.patch: Display RMS percentage error as an actual percentage.
+      Patch courtesy of Alex Valavanis.  (Closes: #533761, 533762)
+    - netbook_small_screen_2.diff: Improve display on small-resolution
+      screens.  Patch from feranick, Ubuntu LP #391833.
+    - motiflockup.patch: Fix joint grace/X lockup when selecting new data
+      set under certain circumstances.  (Closes: #567323)
+   * Updated patches:
+    - grace_manpage_debian_warning.diff: Add whatis entry to grconvert(1).
+
+ -- Nicholas Breen <nbreen@ofb.net>  Fri, 05 Feb 2010 13:18:01 -0800
+
+grace (1:5.1.22-2) unstable; urgency=low
+
+  * Orphan the package.
+
+ -- Torsten Werner <twerner@debian.org>  Sun, 15 Feb 2009 20:14:34 +0100
+
+grace (1:5.1.22-1) unstable; urgency=low
+
+  [ Ionut Georgescu ]
+  * Switch from FFTW2 to FFTW3. Use pkg-config to locate FFTW3.
+    (Closes: #264201).
+  * NetCDF support was no longer build. Use the AC_CHECK_LIB macro to check
+    for the existence of the library.
+  * Make sure that all patches are applied with -p1. (Closes: #485345)
+  * Update Standards-Version, Homepage, and Depends.
+  * Update manpage fdf2fit.1.
+  * Update doc-base file.
+
+  [ Torsten Werner ]
+  * New upstream release
+
+ -- Torsten Werner <twerner@debian.org>  Mon, 21 Jul 2008 21:24:48 +0200
+
+grace (1:5.1.21-2) unstable; urgency=low
+
+  * Add debian/watch.
+  * Fix desktop and menu file.
+  * Bumped up Standards-Version: 3.7.3.
+
+ -- Torsten Werner <twerner@debian.org>  Sun, 16 Dec 2007 03:20:19 +0100
+
+grace (1:5.1.21-1) unstable; urgency=low
+
+  * New upstream release. Closes #376206.
+  * grace_manpage.diff and cephes_ushort_to_double_conversion.diff have been
+    applied upstream. Remove them.
+  * The upstream source comes with a patches/ directory which conflicts with
+    cdbs-quilt-patchsys. Prevent cdbs from creating a symlink to
+    debian/patches and set QUILT_PATCHES=debian/patches by hand.
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Tue, 20 Feb 2007 13:55:29 +0100
+
+grace (1:5.1.20-5) unstable; urgency=low
+
+  * Fix a bug in grace-thumbnailer which makes it write the thumbnail to
+    stdout instead of the destination supplied by nautilus.
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Sun, 12 Nov 2006 17:58:47 +0100
+
+grace (1:5.1.20-4) unstable; urgency=medium
+
+  [ Ionut Georgescu ]
+  * Add dependency on gconf2 for the gconf schemas. If we don't register them
+    explicitely, a subsequent installation of gconf won't "see" them.
+    Closes: #395079.
+
+  [ Torsten Werner ]
+  * Set urgency to medium because the bug is release critical.
+
+ -- Torsten Werner <twerner@debian.org>  Sun,  5 Nov 2006 13:51:28 +0100
+
+grace (1:5.1.20-3) unstable; urgency=low
+
+  [ Ionut Georgescu ]
+  * The GNOME file browser can now display thumbnails of Grace projects.
+  * Fix a bug in the defoma script which prevented a clean removal of grace.
+
+  [ Torsten Werner ]
+  * Add XS-X-Vcs-Svn header to debian/control.
+
+ -- Torsten Werner <twerner@debian.org>  Fri, 20 Oct 2006 06:56:48 +0200
+
+grace (1:5.1.20-2) unstable; urgency=low
+
+  [ Ionut Georgescu ]
+  * [gcc-4.1] Dereferencing type-punned pointers breaks strict-aliasing rules.
+    Fixed.
+  * Replace tmpnam() by the safer mkstemp(). This might break VMS
+    compatibility, but debian does not run on VMS, yet.
+  * Desktop integration:
+      -# Define a new mime-type: application/x-grace.
+      -# Create the scalable (SVG), 16x16, 22x22, 24x24 and 32x32 versions of
+         the icons.
+      -# Provide the PNG files in uuencoded format for compatibility with
+         Debian-Diff.
+  * Manage patches with quilt.
+
+  [ Torsten Werner ]
+  * Add Build-Depends: sharutils because of the use of uudecode.
+  * Make some minor fixes in debian/rules, debian/preinst, debian/control, and
+    debian/grace.menu.
+
+ -- Torsten Werner <twerner@debian.org>  Wed, 20 Sep 2006 00:17:39 +0200
+
+grace (1:5.1.20-1) unstable; urgency=low
+
+  * CFLAGS=-g -O1 on m68k. Closes: #338433.
+  * The directory structure seems to conserve during an upgrade.
+    /usr/share/grace/doc has now been replaced by a symbolic link, so remove
+    the directory in preinst before hand. Closes: #369902.
+  * New upstream release
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Mon,  5 Jun 2006 16:42:36 +0200
+
+grace (1:5.1.19-4) unstable; urgency=low
+
+  * Also install /usr/share/doc/grace/index.html. Closes: #364534.
+  * Fix the defoma script so we don't register and unregister all the fonts N
+    times, where N is the number of fonts. Sorry for that :-)
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Fri,  5 May 2006 00:13:57 +0200
+
+grace (1:5.1.19-3) unstable; urgency=low
+
+  [ Ionut Georgescu ]
+  * New upstream release.
+  * [manpages] Fixed dangling symlinks, warn about missing PDF support.
+  * Fixed the grconvert and fdf2fit filter paths in gracerc.
+  * [man] more info for 'xmgrace -version'.
+
+  [ Torsten Werner ]
+  * added Build-Depends: libxau-dev
+  * added CPPFLAGS=-I/usr/X11R6/include to configure to support unstable
+
+ -- Torsten Werner <twerner@debian.org>  Sat, 22 Apr 2006 20:48:26 +0200
+
+grace (1:5.1.18-4) unstable; urgency=low
+
+  * Changed build dependency on libxpm4-dev to libxpm-dev. Closes: #333914.
+  * Revert the LaTeX stuff. Upstream agrees on it, but not just as a simple
+    hack, which introduces an 'incompatibility' between debian and the rest
+    of the world.
+  * lintian clean.
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Wed, 19 Oct 2005 14:28:24 +0200
+
+grace (1:5.1.18-3) unstable; urgency=low
+
+  * New maintainer.
+  * Build-dependency on gfortran, as g77 is no longer provided with gcc-4.0.
+  * cdbs simple patch system.
+  * LaTeX-like translation and scaling of sub- and super-scripts.
+  * Updated the copyright information.
+  * added twerner to the Uploaders in debian/control (twerner)
+  * smoothed Build-Depends to enable building on sarge
+
+ -- Ionut Georgescu <george@pks.mpg.de>  Wed,  7 Sep 2005 18:29:43 +0200
+
+grace (1:5.1.18-2) unstable; urgency=low
+
+  * removed debian/postrm, closes: #314923
+
+ -- Torsten Werner <twerner@debian.org>  Mon, 11 Jul 2005 20:11:58 +0200
+
+grace (1:5.1.18-1) unstable; urgency=low
+
+  * new upstream release
+  * added Conflicts: grace6
+
+ -- Torsten Werner <twerner@debian.org>  Fri,  7 Jan 2005 19:11:41 +0100
+
+grace (1:5.1.17-2) unstable; urgency=low
+
+  * remove /usr/share/fonts/ when purging, closes: #268778
+
+ -- Torsten Werner <twerner@debian.org>  Wed,  3 Nov 2004 00:25:48 +0100
+
+grace (1:5.1.17-1) experimental; urgency=low
+
+  * new upstream version, uploading to experimental due to release time and
+    increasing epoch to override the current version 6 in experimental
+
+ -- Torsten Werner <twerner@debian.org>  Sun, 12 Sep 2004 22:13:56 +0200
+
+grace (5.1.16-1) unstable; urgency=low
+
+  * new upstream version:
+    -  replaced meaningless error message issued when trying to load data with
+    a few string columns as a single set, closes: #253083
+    - in the spreadsheet editor, the last entered cell's data wasn't
+    committed, closes: #253105
+    - set scrolling of the custom ticks/labels table to 1 row per click,
+    closes: #253110
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 10 Aug 2004 22:40:04 +0200
+
+grace (5.1.15-2) unstable; urgency=low
+
+  * updated Build-Depends: g77 | fortran77-compiler, closes: #250459
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 15 Jun 2004 21:14:46 +0200
+
+grace (5.1.15-1) unstable; urgency=low
+
+  * new upstream version
+  * updated Build-Depends: xmhtml1-dev
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 15 Jun 2004 20:17:58 +0200
+
+grace (5.1.14-2) unstable; urgency=low
+
+  * changed Build-Depends from t1lib-dev to libt1-dev, closes: #224314
+
+ -- Torsten Werner <twerner@debian.org>  Sun, 18 Jan 2004 13:12:39 +0000
+
+grace (5.1.14-1) unstable; urgency=low
+
+  * new upstream
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 13 Jan 2004 21:08:08 +0000
+
+grace (5.1.13-3) unstable; urgency=low
+
+  * removed last man page 'fix' and created a link grace -> xmgrace, really
+    closes: #222380
+
+ -- Torsten Werner <twerner@debian.org>  Fri,  2 Jan 2004 11:16:40 +0000
+
+grace (5.1.13-2) unstable; urgency=low
+
+  * removed libtiff build dependency and added --disable-pdfdrv to configure,
+    closes: #216856
+  * fixed man page, closes: #222380
+  * applied a patch provided by Evgeny Stambulchik
+    <fnevgeny@plasma-gate.weizmann.ac.il>, hopefully closes: #215359
+
+ -- Torsten Werner <twerner@debian.org>  Wed, 17 Dec 2003 21:40:25 +0100
+
+grace (5.1.13-1) unstable; urgency=low
+
+  * new upstream
+  * added --with-helpviewer=sensible-browser to the configure command line,
+    closes: #212844
+  * converted to cdbs
+  * updated Standards-Version
+
+ -- Torsten Werner <twerner@debian.org>  Sun, 19 Oct 2003 13:41:44 +0200
+
+grace (5.1.12-2) unstable; urgency=low
+
+  * installed a workaround the buggy gcc-3.2 on arm architecture
+  * changed build depends from libpng2-dev to libpng-dev
+  * updated debian/rules
+
+ -- Torsten Werner <twerner@debian.org>  Sat, 19 Apr 2003 17:45:54 +0200
+
+grace (5.1.12-1) unstable; urgency=low
+
+  * new upstream
+  * requires lesstif2 now
+  * updated debian/rules
+
+ -- Torsten Werner <twerner@debian.org>  Sat,  8 Mar 2003 21:23:18 +0100
+
+grace (5.1.10-2) unstable; urgency=low
+
+  * converted build process to CBS
+  * added a man page for fdf2fit
+
+ -- Torsten Werner <twerner@debian.org>  Wed,  4 Dec 2002 21:07:30 +0100
+
+grace (5.1.10-1) unstable; urgency=low
+
+  * new upstream, removed patches from 5.1.9 because they are included
+    upstream
+  * removed file FontDataBase that is autogenerated by defoma,
+    closes: #161733
+
+ -- Torsten Werner <twerner@debian.org>  Fri,  4 Oct 2002 15:03:34 +0200
+
+grace (5.1.9-2) unstable; urgency=low
+
+  * initial defoma support
+  * some documentation and cleanups
+  * added Suggests: tetex-bin, gs
+  * applied patch for upstream bug #1200 (segfault in fonttool)
+  * quick'n'dirty patch for upstream bug #1202 (crash in fonttool)
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 20 Aug 2002 09:45:50 +0200
+
+grace (5.1.9-1) unstable; urgency=low
+
+  * new upstream
+  * added doc-base support and a slightly modified version of the Grace
+    Homepage as index.html
+  * changed DH_COMPAT=4 and commented out DH_VERBOSE=1
+
+ -- Torsten Werner <twerner@debian.org>  Mon,  5 Aug 2002 10:19:05 +0200
+
+grace (5.1.8-1) unstable; urgency=low
+
+  * new upstream
+
+ -- Torsten Werner <twerner@debian.org>  Mon,  3 Jun 2002 14:14:55 +0200
+
+grace (5.1.7-1) unstable; urgency=low
+
+  * new upstream
+
+ -- Torsten Werner <twerner@debian.org>  Tue, 19 Mar 2002 14:19:58 +0100
+
+grace (5.1.6-2) unstable; urgency=low
+
+  * DH_COMPAT=3 in debian/rules
+  * recompiled against current lesstif library, closes: #130361
+  * versioned build dep for lesstif
+
+ -- Torsten Werner <twerner@debian.org>  Mon, 11 Feb 2002 11:39:05 +0100
+
+grace (5.1.6-1) unstable; urgency=low
+
+  * new upstream
+  * minor updates of the debian/* files
+  * changed /usr/lib/grace into /usr/share/grace
+
+ -- Torsten Werner <twerner@debian.org>  Wed, 30 Jan 2002 09:04:08 +0100
+
+grace (5.1.5-1) unstable; urgency=low
+
+  * new upstream, closes: #124318
+  * convcal has now a man page
+
+ -- Torsten Werner <twerner@debian.org>  Mon, 17 Dec 2001 11:36:43 +0100
+
+grace (5.1.4-2) unstable; urgency=low
+
+  * really fixed link to ghostscript fonts dir
+
+ -- Torsten Werner <twerner@debian.org>  Wed,  5 Sep 2001 10:03:24 +0200
+
+grace (5.1.4-1) unstable; urgency=low
+
+  * new upstream
+
+ -- Torsten Werner <twerner@debian.org>  Fri, 20 Jul 2001 08:37:15 +0200
+
+grace (5.1.3-2) unstable; urgency=low
+
+  * changed link to ghostscript fonts dir, closes: #97661
+
+ -- Torsten Werner <twerner@debian.org>  Thu, 28 Jun 2001 16:04:47 +0200
+
+grace (5.1.3-1) unstable; urgency=low
+
+  * new upstream, closes: #94619
+
+ -- Torsten Werner <twerner@debian.org>  Fri, 20 Apr 2001 16:40:49 +0200
+
+grace (5.1.2-4) unstable; urgency=low
+
+  * recompiled with newer lesstif library, closes: #94565
+
+ -- Torsten Werner <twerner@debian.org>  Fri, 20 Apr 2001 09:07:52 +0200
+
+grace (5.1.2-3) unstable; urgency=low
+
+  * fixed the build dependencies, closes: #87353
+  * applied patch from Paul Slootman <paul@debian.org>, closes: #88013
+  * built with bundled t1lib
+
+ -- Torsten Werner <twerner@debian.org>  Fri,  9 Mar 2001 08:43:36 +0100
+
+grace (5.1.2-2) unstable; urgency=low
+
+  * changed the maintainer field in debian/control
+  * changed egcc to gcc in debian/rules, closes: #86557
+
+ -- Torsten Werner <twerner@intercomm.de>  Fri, 23 Feb 2001 10:03:39 +0100
+
+grace (5.1.2-1) unstable; urgency=low
+
+  * taking over the package from Enrique Zanardi
+  * new upstream release
+  * fixed the symlink problem to the ghostscript fonts
+
+ -- Torsten Werner <twerner@intercomm.de>  Tue, 21 Nov 2000 14:46:45 +0100
+
+grace (5.1.1-0.1) unstable; urgency=low
+
+  * new upstream release, NMU
+  * recompiled with XmHTML-Widget installed, closes: #26498
+  * fixed t1lib dependancy and dh_compress (to exclude examples)
+  * some fixes in the control file
+  * lots of bugs closed in this and former releases: #58908, #38214,
+    #48506, #48166, #58088, #60795, #63190, #65729, #27308, #28944,
+    #29705, #35010, #44728, #62893, #59749
+
+ -- Torsten Werner <twerner@intercomm.de>  Sat, 19 Aug 2000 09:35:38 +0200
+
+grace (5.1.0-0.2) unstable; urgency=low
+
+  * added build dependencies
+  * removed the postscript fonts and added a dependency on gsfonts
+  * recompiled against t1lib 1.0.1
+
+ -- Torsten Werner <twerner@intercomm.de>  Tue, 25 Apr 2000 11:06:56 +0200
+
+grace (5.1.0-0.1) unstable; urgency=low
+
+  * new upstream
+
+ -- Torsten Werner <twerner@intercomm.de>  Wed, 12 Apr 2000 13:16:03 +0200
+
+grace (5.0.5-1.2) unstable; urgency=low
+
+  * Non-maintainer upload
+  * Recompile with new t1lib-dev
+
+ -- Richard Braakman <dark@xs4all.nl>  Sun,  9 Jan 2000 08:49:17 +0100
+
+grace (5.0.5-1.1) unstable; urgency=low
+
+  * Non-maintainer upload
+  * Rebuild with lots more packages installed
+
+ -- Wichert Akkerman <wakkerma@debian.org>  Sat, 30 Oct 1999 20:32:36 +0200
+
+grace (5.0.5-1) unstable; urgency=low
+
+  * uses new t1lib package (0.9.2)
+  * new upstream
+  * Sponsoring upload for Torsten Werner <twerner@intercomm.de>.
+
+ -- J.H.M. Dassen (Ray) <jdassen@debian.org>  Sat, 30 Oct 1999 12:51:47 +0200
+
+grace (5.0.4-1) unstable; urgency=low
+
+  * recompiled for lesstif1
+  * minor changes recommended by lintian (mostly policy related things)
+  * uses bundled t1lib since it is a newer and bug fixed version (0.9.2)
+  * new upstream
+
+ -- Torsten Werner <twerner@intercomm.de>  Sat, 16 Oct 1999 13:23:34 +0200
+
+grace (5.0.3-1) unstable; urgency=low
+
+  * added Replaces: xmgr, closes #35010, #42115, the only conflicting
+    file is the grconvert binary which is identical in both packages
+  * changed editor to sensible-editor
+  * redebianized using dh_make and debhelper
+  * new upstream, closes: #41146, #27308, #28944, #29705, #38214
+  * NMU
+
+ -- Torsten Werner <twerner@intercomm.de>  Mon,  6 Sep 1999 22:19:04 +0200
+
+grace (5.0.1-1.1) unstable; urgency=low
+
+  * NMU
+  * added missing -DGNU_SOURCE
+  * closes: #32276
+
+ -- Hartmut Koptein <koptein@debian.org>  Fri,  9 Jul 1999 10:15:26 +0200
+
+grace (5.0.1-1) unstable; urgency=low
+
+  * New upstream version.
+  * Use "/usr/bin/editor" instead of "/usr/bin/vi" as default
+    editor. (Closes: Bug#26498)
+
+ -- Enrique Zanardi <ezanard@debian.org>  Wed, 23 Sep 1998 16:04:10 +0100
+
+grace (5.0.0-1) unstable; urgency=low
+
+  * New upstream version. Name changed.
+
+ -- Enrique Zanardi <ezanard@debian.org>  Sun,  2 Aug 1998 20:42:24 +0100
+
+xmgr (4.1.2-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Enrique Zanardi <ezanard@debian.org>  Mon, 18 May 1998 16:59:33 +0100
+
+xmgr (4.1.1-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Enrique Zanardi <ezanardi@molec1.dfis.ull.es>  Wed,  3 Dec 1997 21:21:32 +0000
+
+xmgr (4.1.0beta-1) unstable; urgency=low
+
+  * New upstream version
+  * Compiled with netcdfg3 library (Closes Bug#14078).
+
+ -- Enrique Zanardi <ezanardi@molec1.dfis.ull.es>  Sun, 19 Oct 1997 12:31:05 +0100
+
+xmgr (4.0.1-1) unstable; urgency=low
+
+  * New package
+  * Pristine sources
+
+ -- Enrique Zanardi <ezanardi@molec1.dfis.ull.es>  Sun, 28 Sep 1997 21:37:56 +0100

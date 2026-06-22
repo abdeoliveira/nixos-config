@@ -1,0 +1,16 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH GRACE 8 "Jun 6, 2010"
+.SH NAME
+update-grace-fonts \- regenerate font database for xmgrace
+.SH SYNOPSIS
+.B update-grace-fonts
+.SH DESCRIPTION
+This script regenerates the (xm)grace font database, scanning
+over all available type1 fonts.  It is called automatically by maintainer
+scripts and dpkg triggers, and should not normally need to be run directly
+unless you have installed type1 fonts outside the package manager.
+.SH SEE ALSO
+.BR grace (1),
+/usr/share/doc/grace.
+.SH AUTHOR
+Contributed by Kenshi Muto <kmuto@debian.org>.

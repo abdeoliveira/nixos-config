@@ -1,0 +1,76 @@
+#!/usr/bin/perl -w
+#
+# grace font updater
+#  Copyright 2010 Kenshi Muto <kmuto@debian.org>
+# License: GNU General Public License Version 2
+#
+# Aug. 2022: updated core map for new filenames in fonts-urw-35.
+# -- Nicholas Breen <nbreen@debian.org>
+#
+my $orgt1dir = "/usr/share/fonts/type1";
+my $gt1dir = "/usr/share/grace/fonts/type1";
+my $fontbase = "/usr/share/grace/fonts/FontDataBase";
+
+sub recursiveLink {
+    my($odir, $cdir) = @_;
+    opendir(my $dh, $odir);
+    my @files = readdir($dh);
+    foreach (@files) {
+	next if (/^\./);
+	recursiveLink("$odir/$_", $cdir) if -d "$odir/$_";
+	symlink("$odir/$_", "$cdir/$_") if -f "$odir/$_";
+    }
+    closedir($dh);
+}
+
+# cleanup (remove symlink only)
+opendir(my $dh, $gt1dir) || die "Can't open $gt1dir: $!\n";
+my @files = readdir($dh);
+foreach (@files) {
+    next if (/^\./);
+    unlink "$gt1dir/$_" if -l "$gt1dir/$_";
+}
+closedir($dh);
+
+# symlink from original font directory
+recursiveLink($orgt1dir, $gt1dir);
+
+# define essential Postscript font map
+my(%map) = (
+    "Times-Roman" => "NimbusRoman-Regular.t1",
+    "Times-Italic" => "NimbusRoman-Italic.t1",
+    "Times-Bold" => "NimbusRoman-Bold.t1",
+    "Times-BoldItalic" => "NimbusRoman-BoldItalic.t1",
+    "Helvetica" => "NimbusSans-Regular.t1",
+    "Helvetica-Oblique" => "NimbusSans-Italic.t1",
+    "Helvetica-Bold" => "NimbusSans-Bold.t1",
+    "Helvetica-BoldOblique" => "NimbusSans-BoldItalic.t1",
+    "Courier" => "NimbusMonoPS-Regular.t1",
+    "Courier-Oblique" => "NimbusMonoPS-Italic.t1",
+    "Courier-Bold" => "NimbusMonoPS-Bold.t1",
+    "Courier-BoldOblique" => "NimbusMonoPS-BoldItalic.t1",
+    "Symbol" => "StandardSymbolsPS.t1",
+    "ZapfDingbats" => "D050000L.t1"
+);
+
+# scan font files
+chdir("$gt1dir");
+open(my $ph, "fc-scan -f '%{fontformat}\t%{family}-%{style}\t%{file}\n' . |") || die "Can't execute fc-scan: $!\n";
+while (<$ph>) {
+    chomp;
+    my($fontformat, $familystyle, $file) = split(/\t/);
+    next if $fontformat ne "Type 1";
+    $familystyle =~ s/ //g;
+    $file =~ s/^\.\///;
+    $map{$familystyle} = $file;
+}
+close($ph);
+
+# dump FontDatabase
+open(my $fh, ">$fontbase") || die "Can't create $fontbase: $!\n";
+print $fh (scalar(keys %map));
+print $fh "\n";
+foreach (sort keys %map) {
+    print $fh "$_ $_ " . $map{$_} . "\n";
+}
+close($fontbase);

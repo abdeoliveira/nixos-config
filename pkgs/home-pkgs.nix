@@ -4,7 +4,8 @@ with pkgs; [
   # Custom packages
   gtk3-nocsd
   vesta
-  qtgrace
+  #qtgrace
+  grace
   packmol
   my-scripts
   lammps-interface
