@@ -8,7 +8,7 @@ with pkgs; [
   grace
   packmol
   my-scripts
-  lammps-interface
+  # lammps-interface
   # Other packages
   gh
 ]
