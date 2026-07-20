@@ -20,12 +20,12 @@
   nixpkgs.config.allowUnfree = true;
   nixpkgs.overlays = [
     (final: prev: {
-      qtgrace = prev.callPackage ./pkgs/qtgrace { };
+      #qtgrace = prev.callPackage ./pkgs/qtgrace { };
       grace = prev.callPackage ./pkgs/grace { };
       vesta = prev.callPackage ./pkgs/vesta { };
       gtk3-nocsd = prev.callPackage ./pkgs/gtk3-nocsd { };
       packmol = prev.callPackage ./pkgs/packmol { };
-      lammps-interface = prev.callPackage ./pkgs/lammps-interface { };
+      #lammps-interface = prev.callPackage ./pkgs/lammps-interface { };
       lammps = prev.lammps.override {
       packages = prev.lammps.packages // {
         "EXTRA-MOLECULE" = true;
