@@ -78,7 +78,7 @@ with pkgs; [
   waybar
   eog
   pavucontrol
-  swww
+  awww
   gammastep
   #syncthing
   restic
