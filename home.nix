@@ -116,6 +116,7 @@ xdg.configFile."mimeapps.list".force = true;
       color-scheme = "prefer-dark";
       gtk-theme = "Dracula";
       icon-theme = "Dracula";
+      gtk-enable-primary-paste = true;
     };
 };
 
