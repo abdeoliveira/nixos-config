@@ -13,7 +13,8 @@ with pkgs; [
   chromium
   xauth
   impala
-  agenix.packages.${system}.default
+  #agenix.packages.${system}.default
+  agenix.packages.${stdenv.hostPlatform.system}.default
   iw # to manage waybar/scripts/wifipower.rb only
   age
   python313

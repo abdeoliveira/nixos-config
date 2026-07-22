@@ -16,8 +16,8 @@ stdenv.mkDerivation rec {
     gtk3
     gtk2
     libGLU
-    xorg.libXtst
-    xorg.libXxf86vm
+    libXtst
+    libXxf86vm
     #jdk
     openjdk
   ];

@@ -26,6 +26,7 @@ in
     enable = true;
     theme = { name = "Dracula"; package = pkgs.dracula-theme; };
     iconTheme = { name = "Dracula"; package = pkgs.dracula-icon-theme; };
+    gtk4.theme = config.gtk.theme;   # keep Dracula on GTK4 apps too
   };
 
   # --- Portals for niri ----
@@ -123,9 +124,9 @@ xdg.configFile."mimeapps.list".force = true;
 # ---- Neovim ----
 programs.neovim = {
   enable = true;
-  plugins = [
-    pkgs.vimPlugins.dracula-vim 
-  ];
+  withRuby = false;
+  withPython3 = false;
+  plugins = [pkgs.vimPlugins.dracula-vim];
   extraConfig = ''
     colorscheme dracula
   '';
