@@ -166,6 +166,14 @@ age.secrets.ssh-config = {
   mode  = "0600";
 };
 
+age.secrets.sdumont-vpn-conf = {
+  file = ./secrets/sdumont-vpn-conf.age;
+  path = "/home/oliveira/.config/sdumont-vpn.conf";
+  owner = "oliveira";
+  mode  = "0600";
+};
+
+
  # --- Deploy .psk files into iwd's config directory ---
   system.activationScripts.iwd-networks = {
     deps = [ "agenix" ];

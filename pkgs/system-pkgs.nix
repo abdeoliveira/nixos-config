@@ -25,6 +25,7 @@ with pkgs; [
   texliveFull
   gfortran
   openvpn
+  vpnc # for Santos Dumont
   glib
   xdg-utils
   wget
