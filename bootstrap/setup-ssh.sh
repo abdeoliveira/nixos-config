@@ -1,4 +1,5 @@
 #!/bin/bash
+# age tip: passphrase is the same to decrypt SSD
 
 SSH_DIR="$HOME/.ssh"
 

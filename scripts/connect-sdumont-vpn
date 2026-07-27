@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+sudo vpnc /home/oliveira/.config/sdumont-vpn.conf --enable-weak-encryption
+#sudo vpnc-disconnect
