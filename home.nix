@@ -159,7 +159,7 @@ programs.neovim = {
       vi = "nvim";
       jmol = "jmol-wayland";
       bc = "bc -lq";
-      pry = "pry 2>/dev/null";
+      #pry = "pry 2>/dev/null";
       #xmgrace = "qtgrace 2>/dev/null";
       nrs = "sudo nixos-rebuild switch --flake /home/oliveira/.nixos-config";
     };

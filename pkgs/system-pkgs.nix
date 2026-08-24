@@ -2,22 +2,27 @@
 
 with pkgs; [
 
-  #passff-host # for firefox
+ # ---- Ruby ------------------
+ (ruby.withPackages (ps: with ps; [
+    pry
+    parallel
+    mini_magick
+  ]))
 
-  ruby
-  rubyPackages.pry   
-  #rubyPackages.parallel
-  #rubyPackages.meni_magick
+  #---- Phyton ------------
+  (python3.withPackages (ps: with ps; [
+    numpy
+    matplotlib
+  ]))
  
-  ##sshfs
+ #------------------- ------
+ ##sshfs
   chromium
   xauth
   impala
-  #agenix.packages.${system}.default
   agenix.packages.${stdenv.hostPlatform.system}.default
   iw # to manage waybar/scripts/wifipower.rb only
   age
-  python313
   fwupd
   imagemagick
   mpi

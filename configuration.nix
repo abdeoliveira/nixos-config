@@ -30,6 +30,7 @@
       packages = prev.lammps.packages // {
         "EXTRA-MOLECULE" = true;
         "EXTRA-PAIR" = true;
+	"EXTRA-COMPUTE" = true;
       };
      };
     })
