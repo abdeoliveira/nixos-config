@@ -7,6 +7,7 @@ with pkgs; [
     pry
     parallel
     mini_magick
+    csv
   ]))
 
   #---- Phyton ------------
@@ -17,6 +18,7 @@ with pkgs; [
  
  #------------------- ------
  ##sshfs
+  glow
   chromium
   xauth
   impala
