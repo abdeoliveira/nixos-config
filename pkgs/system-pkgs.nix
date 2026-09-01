@@ -18,6 +18,9 @@ with pkgs; [
  
  #------------------- ------
  ##sshfs
+  pandoc # pandoc input.md -o output.pdf
+  typst # see alias md2pdf in home.nix
+  ghostscript
   glow
   chromium
   xauth
