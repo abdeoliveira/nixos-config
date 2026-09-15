@@ -129,7 +129,7 @@ programs.neovim = {
       vi = "nvim";
       jmol = "jmol-wayland";
       bc = "bc -lq";
-      md2pdf = "pandoc --pdf-engine=typst -V mainfont='DejaVu Serif' -V monofont='DejaVu Sans Mono'";
+      md2pdf = "pandoc --pdf-engine=typst -V mainfont='DejaVu Serif' -V monofont='DejaVu Sans Mono' -f markdown+ascii_identifiers";
       nrs = "sudo nixos-rebuild switch --flake /home/oliveira/.nixos-config";
     };
 

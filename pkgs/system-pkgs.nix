@@ -14,10 +14,12 @@ with pkgs; [
   (python3.withPackages (ps: with ps; [
     numpy
     matplotlib
+    ase
   ]))
  
  #------------------- ------
  ##sshfs
+  zip
   pandoc # pandoc input.md -o output.pdf
   typst # see alias md2pdf in home.nix
   ghostscript
