@@ -313,10 +313,6 @@ environment.systemPackages = (import ./pkgs/system-pkgs.nix) { inherit pkgs agen
     EDITOR = "nvim";
     VISUAL = "nvim";
     TERMINAL = "alacritty";
-    # Claude Code: updates come from nixpkgs, not its self-updater
-    # (the Nix store is read-only). Check the variable name in the
-    # current Claude Code settings docs if update warnings persist.
-    DISABLE_AUTOUPDATER = "1";
     #RCLONE_CONFIG = "/run/agenix/rclone-config";
   };
 

@@ -105,10 +105,5 @@ with pkgs; [
   xwayland-satellite
   poppler-utils # pdf utilities
   pinentry-curses
-
-  # ---- Claude Code ----
-  claude-code     # unfree; covered by nixpkgs.config.allowUnfree = true
-  claude-monitor  # usage monitor (reads local Claude Code logs)
-  ripgrep         # fast file search used by Claude Code
 ]
 
