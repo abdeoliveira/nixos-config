@@ -21,6 +21,7 @@ with pkgs; [
  
  #------------------- ------
  ##sshfs
+  gnumake
   zip
   pandoc # pandoc input.md -o output.pdf
   typst # see alias md2pdf in home.nix
