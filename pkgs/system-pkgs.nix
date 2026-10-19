@@ -17,6 +17,7 @@ with pkgs; [
     matplotlib
     ase
     pillow
+    pandas
   ]))
  
  #------------------- ------
