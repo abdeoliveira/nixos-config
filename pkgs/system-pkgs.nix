@@ -18,6 +18,7 @@ with pkgs; [
     ase
     pillow
     pandas
+    lammps
   ]))
  
  #------------------- ------
