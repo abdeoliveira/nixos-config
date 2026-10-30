@@ -7,3 +7,4 @@ cleaner,		1h,	uptime,	cleaner.sh
 gcalcli, 		10m, 	clock,	sleep 30; gcalcli-update.sh 
 sync-password-store,	1d, 	clock,	sleep 30; sync-password-store.sh 
 restic-phone,		1d,	clock,	sleep 30; ssh phone '~/bin/backup_phone.sh'
+#lightlog,		10m,	clock,	lightlog

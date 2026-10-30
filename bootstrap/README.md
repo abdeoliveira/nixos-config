@@ -7,7 +7,7 @@
 4. `vim ../host-specific.nix` (check if it needs modifications)
 5. `cp /etc/nixos/hardware-configuration.nix ~/.nixos-config/`
 6. `sudo ./temporary-swap.sh`
-7. `cat /etc/ssh/ssh_host_ed25519_key.pub` and update `system=` at `../secrets/secrets.nix`
+7. `cat /etc/ssh/ssh_host_ed25519_key.pub` and update `system=` at `../agenix-rules.nix`
 8. `./reencrypt-keys.sh`
 9. `cd ~/.nixos-config && git add . && sudo nixos-rebuild switch --flake .`
 

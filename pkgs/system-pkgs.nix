@@ -15,6 +15,7 @@ with pkgs; [
   (python3.withPackages (ps: with ps; [
     numpy
     matplotlib
+    scipy
     ase
     pillow
     pandas

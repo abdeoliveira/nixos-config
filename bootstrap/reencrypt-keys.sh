@@ -9,6 +9,6 @@ chown -R oliveira:users /home/oliveira/.local
 chown -R oliveira:users /home/oliveira/.config
 
 # Reencrypt age keys
-RULES=./secrets/secrets.nix \
+AGENIX_RULES=./agenix-rules.nix \
   nix --extra-experimental-features 'nix-command flakes' \
   run github:ryantm/agenix -- -r -i ~/.ssh/id_rsa

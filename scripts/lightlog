@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+# Logs phone ambient light + external monitor brightness/contrast.
+# Usage: lightlog [tag]    (tag defaults to "auto")
+
+require 'fileutils'
+
+tag  = ARGV[0] || 'auto'
+data = "#{ENV['HOME']}/.local/share/lightlog/light.csv"
+FileUtils.mkdir_p(File.dirname(data))
+
+def vcp(code)
+  out = `ddcutil --display 1 getvcp #{code} 2>/dev/null`
+  out[/current value\s*=\s*(\d+)/, 1] if $?.success?
+end
+
+b = vcp(10); exit 0 unless b
+c = vcp(12)
+
+lux = `timeout 20 ssh phone ./lux 2>/dev/null`.strip
+lux = nil unless $?.success? && lux.match?(/\A\d+(\.\d+)?\z/)
+
+File.write(data, "time,lux,brightness,contrast,tag\n") unless File.exist?(data)
+row = [Time.now.strftime('%Y-%m-%dT%H:%M:%S%z'), lux, b, c, tag]
+File.write(data, row.map { |v| v || 'NA' }.join(',') + "\n", mode: 'a')
+
+exit 0
