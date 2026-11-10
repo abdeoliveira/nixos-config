@@ -21,7 +21,10 @@ stdenv.mkDerivation rec {
   version = "5.1.25";
 
   src = fetchurl {
-    url = "https://plasma-gate.weizmann.ac.il/pub/grace/src/stable/grace-${version}.tar.gz";
+    urls = [
+      "https://deb.debian.org/debian/pool/main/g/grace/grace_${version}.orig.tar.gz"
+      "https://plasma-gate.weizmann.ac.il/pub/grace/src/stable/grace-${version}.tar.gz"
+    ];
     sha512 = "9ea68483af1dfc98d217ae730b7a51b66deae5aaa8dfda29d5a3337ed4b5728b45aa03f561bf7d4173e73d6af8dee03cbabd95c0c8dd36999303c89451a3728a";
   };
 

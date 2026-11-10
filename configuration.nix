@@ -182,7 +182,7 @@ age.secrets.sdumont-vpn-conf = {
       mkdir -p /var/lib/iwd
       chmod 0700 /var/lib/iwd
 
-      cp /run/agenix/wifi-home    /var/lib/iwd/DecoM5.psk
+      cp /run/agenix/wifi-home    /var/lib/iwd/Familia-Fofura.psk
       #cp /run/agenix/wifi-office  /var/lib/iwd/NANO.psk
       cp /run/agenix/wifi-phone   /var/lib/iwd/Galaxy-A15.psk
       cp /run/agenix/wifi-eduroam /var/lib/iwd/eduroam.8021x

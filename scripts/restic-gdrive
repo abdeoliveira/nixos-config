@@ -15,9 +15,8 @@ EXCLUDES="--exclude=$HOME/.local/share/Trash \
 export RESTIC_PASSWORD_FILE=/run/agenix/restic-pw
 export RESTIC_REPOSITORY=rclone:ufop:restic
 #=============================================
-ping -c 1 8.8.8.8 > /dev/null 2>&1 
-if [[ $? -ne 0 && $1 != 'help' ]];then
-	echo "ABORTING: No internet connection."
+if [[ $1 != help ]] && ! curl -sS -o /dev/null --head --max-time 10 https://www.googleapis.com; then
+	echo "ABORTING: No internet connection." >&2
 	exit 2
 fi
 #--------------------------------------------
