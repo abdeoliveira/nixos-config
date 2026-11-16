@@ -12,6 +12,11 @@
     variant = "";
   };
 
+    # --- Battery (Dell Latitude 5400): Custom mode, charge 75→80% ---
+  services.udev.extraRules = ''
+    ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT0", ATTR{charge_control_end_threshold}="80", ATTR{charge_control_start_threshold}="75", ATTR{charge_types}="Custom"
+  '';
+
   # --- Bootloader ---
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
