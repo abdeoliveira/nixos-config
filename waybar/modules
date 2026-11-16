@@ -56,7 +56,7 @@
 	"interval": 5,
 	"align": 0,
 	"rotate": 0,
-	"full-at": 98,
+	"full-at": 100,
 	"design-capacity": false,
 	"states": {
 		"critical": 20
