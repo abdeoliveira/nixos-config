@@ -14,8 +14,22 @@
 
     # --- Battery (Dell Latitude 5400): Custom mode, charge 75→80% ---
   services.udev.extraRules = ''
-    ACTION=="add|change", SUBSYSTEM=="power_supply", KERNEL=="BAT0", ATTR{charge_control_end_threshold}="80", ATTR{charge_control_start_threshold}="75", ATTR{charge_types}="Custom"
+    ACTION=="add", SUBSYSTEM=="power_supply", KERNEL=="BAT0", ATTR{charge_control_end_threshold}="80", ATTR{charge_control_start_threshold}="75", ATTR{charge_types}="Custom"
   '';
+
+    environment.systemPackages = [
+    (pkgs.writeShellScriptBin "battery-mode" ''
+      b=/sys/class/power_supply/BAT0
+      case "$1" in
+        travel) echo Standard | sudo tee $b/charge_types >/dev/null ;;
+        daily)  echo 80 | sudo tee $b/charge_control_end_threshold >/dev/null
+                echo 75 | sudo tee $b/charge_control_start_threshold >/dev/null
+                echo Custom | sudo tee $b/charge_types >/dev/null ;;
+        *) echo "usage: battery-mode travel|daily" ;;
+      esac
+      cat $b/charge_types
+    '')
+  ];
 
   # --- Bootloader ---
   boot.loader.systemd-boot.enable = true;
