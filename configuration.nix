@@ -1,4 +1,4 @@
-{ config, pkgs, agenix, ... }:
+{ config, pkgs, agenix, nixpkgs-unstable, ... }:
 
 {
   # --- Nix Settings ---
@@ -19,7 +19,20 @@
   # --- Nixpkgs Settings (overlays, unfree packages) ---
   nixpkgs.config.allowUnfree = true;
   nixpkgs.overlays = [
-    (final: prev: {
+    (final: prev:
+    let
+      # A second nixpkgs instance, tracked at nixos-unstable. Its config is
+      # independent of nixpkgs.config above, so allowUnfree must be repeated
+      # here -- claude-code is unfree and evaluation fails without it.
+      unstable = import nixpkgs-unstable {
+        system = prev.stdenv.hostPlatform.system;
+        config.allowUnfree = true;
+      };
+    in
+    {
+      # Pulled from unstable: 26.05 lags claude-code by ~100 releases.
+      claude-code = unstable.claude-code;
+
       #qtgrace = prev.callPackage ./pkgs/qtgrace { };
       grace = prev.callPackage ./pkgs/grace { };
       vesta = prev.callPackage ./pkgs/vesta { };
