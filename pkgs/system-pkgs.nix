@@ -24,6 +24,7 @@ with pkgs; [
  
  #------------------- ------
  ##sshfs
+  jq
   gnumake
   zip
   pandoc # pandoc input.md -o output.pdf

@@ -1,0 +1,489 @@
+#!/usr/bin/env python3
+"""projman — a tiny colourful TUI to track research projects by maturity.
+
+Stages (maturity):
+  1 hold · 2 waiting · 3 running · 4 draft · 5 my review
+  6 team review · 7 submitted · 8 resubmitted
+
+Data lives in ~/.projman.json (override with $PROJMAN_FILE).
+Pure standard library (curses). Run:  python3 projman.py
+"""
+import curses
+import datetime
+import json
+import locale
+import os
+import sys
+import shutil
+import tempfile
+import unicodedata
+
+os.environ.setdefault("ESCDELAY", "25")
+
+DATA_FILE = os.environ.get("PROJMAN_FILE", os.path.expanduser("~/.projman.json"))
+
+# (name, 256-colour fg, 8-colour fallback)
+STAGES = [  # grey = parked; cyan->orange = ball with me; blue/violet = ball elsewhere
+    ("hold",         244, curses.COLOR_WHITE),
+    ("waiting",       69, curses.COLOR_BLUE),
+    ("running",       45, curses.COLOR_CYAN),
+    ("draft",        112, curses.COLOR_GREEN),
+    ("my review",    220, curses.COLOR_YELLOW),
+    ("team review",  208, curses.COLOR_YELLOW),
+    ("submitted",     99, curses.COLOR_MAGENTA),
+    ("resubmitted",  171, curses.COLOR_MAGENTA),
+]
+N = len(STAGES)
+SEL_BG = 237  # background of the selected row (256-colour terminals)
+
+
+# ---------------------------------------------------------------- storage
+def load(path=None):
+    try:
+        with open(path or DATA_FILE, encoding="utf-8") as f:
+            items = json.load(f)
+    except (OSError, ValueError):
+        return []
+    out = []
+    for it in items:
+        out.append({
+            "desc": str(it.get("desc", "")),
+            "rank": min(N, max(1, int(it.get("rank", 1)))),
+            "member": str(it.get("member", "")),
+            "obs": str(it.get("obs", "")),
+            "mod": str(it.get("mod", "")),   # YYYY-MM-DD, "" = unknown
+        })
+    return out
+
+
+BACKUP_FILE = DATA_FILE + ".bak"
+
+
+def save(items):
+    """Write atomically; the previous version is kept as <file>.bak (one-step undo)."""
+    if os.path.exists(DATA_FILE):
+        try:
+            shutil.copy2(DATA_FILE, BACKUP_FILE)
+        except OSError:
+            pass
+    d = os.path.dirname(os.path.abspath(DATA_FILE))
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".projman-")
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, DATA_FILE)
+
+
+# ---------------------------------------------------------------- helpers
+def fold(s):
+    """Lower-case and strip accents, for forgiving searches."""
+    s = unicodedata.normalize("NFKD", s.casefold())
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def matches(it, query):
+    hay = fold(" ".join((it["desc"], it["member"], it["obs"], STAGES[it["rank"] - 1][0])))
+    return all(tok in hay for tok in fold(query).split())
+
+
+def prompt(stdscr, col, label, text=""):
+    """One-line input on the bottom-but-one row. Enter = ok, Esc = cancel."""
+    H, W = stdscr.getmaxyx()
+    y = H - 2
+    while True:
+        put(stdscr, y, 0, " " * (W - 1))
+        put(stdscr, y, 1, label, col.bright() | curses.A_BOLD)
+        shown = text[-(W - len(label) - 4):]
+        put(stdscr, y, 2 + len(label), shown, col.bright())
+        try:
+            curses.curs_set(1)
+            stdscr.move(y, min(W - 2, 2 + len(label) + len(shown)))
+        except curses.error:
+            pass
+        stdscr.refresh()
+        k = stdscr.get_wch()
+        if k in ("\n", "\r", curses.KEY_ENTER):
+            return text
+        if k in ("\x1b", "\x03"):
+            return None
+        if k in ("\x7f", "\b", curses.KEY_BACKSPACE):
+            text = text[:-1]
+        elif k == "\x15":
+            text = ""
+        elif isinstance(k, str) and k.isprintable():
+            text += k
+
+
+def today():
+    return datetime.date.today().isoformat()
+
+
+def age_text(iso):
+    """'2026-11-17  3d' style text for the LAST MODIFIED column."""
+    try:
+        d = datetime.date.fromisoformat(iso)
+    except ValueError:
+        return "—"
+    n = (datetime.date.today() - d).days
+    if n <= 0:
+        a = "today"
+    elif n < 14:
+        a = f"{n}d"
+    elif n < 63:
+        a = f"{n // 7}w"
+    elif n < 365:
+        a = f"{n // 30}mo"
+    else:
+        a = f"{n // 365}y"
+    return f"{iso}  {a}"
+
+def clip(s, w):
+    s = s.replace("\n", " ")
+    if w <= 0:
+        return ""
+    return s if len(s) <= w else s[: max(0, w - 1)] + "…"
+
+
+def put(win, y, x, s, attr=0):
+    try:
+        win.addstr(y, x, s, attr)
+    except curses.error:
+        pass
+
+
+class Colors:
+    def __init__(self):
+        curses.start_color()
+        try:
+            curses.use_default_colors()
+        except curses.error:
+            pass
+        rich = curses.COLORS >= 256
+        self.rich = rich
+        for i, (_, c256, c8) in enumerate(STAGES, start=1):
+            fg = c256 if rich else c8
+            curses.init_pair(i, fg, -1)                      # normal text
+            curses.init_pair(20 + i, fg, SEL_BG if rich else -1)  # selected row
+            curses.init_pair(40 + i, 16 if rich else curses.COLOR_BLACK, fg)  # badge
+        curses.init_pair(60, 245 if rich else curses.COLOR_WHITE, -1)          # dim
+        curses.init_pair(61, 245 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
+        curses.init_pair(62, 252 if rich else curses.COLOR_WHITE, -1)          # bright
+        curses.init_pair(63, 252 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
+
+    def text(self, rank, sel=False):
+        a = curses.color_pair((20 if sel else 0) + rank)
+        return a | (curses.A_BOLD if sel else 0)
+
+    def badge(self, rank):
+        return curses.color_pair(40 + rank) | curses.A_BOLD
+
+    def dim(self, sel=False):
+        return curses.color_pair(61 if sel else 60)
+
+    def bright(self, sel=False):
+        return curses.color_pair(63 if sel else 62)
+
+
+# ---------------------------------------------------------------- form
+def form(stdscr, col, title, item):
+    """Modal editor. Returns edited dict or None if cancelled."""
+    H, W = stdscr.getmaxyx()
+    bw, bh = min(W - 2, 78), 13
+    win = curses.newwin(bh, bw, max(0, (H - bh) // 2), max(0, (W - bw) // 2))
+    win.keypad(True)
+    labels = [("Description", "desc"), ("Maturity", "rank"),
+              ("Team member", "member"), ("OBS", "obs")]
+    vals = dict(item)
+    pos = {k: len(vals[k]) for k in ("desc", "member", "obs")}
+    f = 0
+    fx = 17
+    fw = bw - fx - 3
+    while True:
+        win.erase()
+        win.box()
+        put(win, 0, 3, f" {title} ", curses.A_BOLD)
+        cy = cx = None
+        for i, (lab, key) in enumerate(labels):
+            y = 2 + i * 2
+            put(win, y, 3, lab, col.bright() | (curses.A_BOLD if i == f else 0))
+            if key == "rank":
+                r = vals["rank"]
+                put(win, y, fx, f" {r} ", col.badge(r))
+                put(win, y, fx + 4, STAGES[r - 1][0], col.text(r) | curses.A_BOLD)
+                if i == f:
+                    put(win, y, fx + 18, "← →  or 1-8", col.dim())
+            else:
+                text, p = vals[key], pos[key]
+                start = max(0, p - fw + 1)
+                shown = text[start:start + fw]
+                attr = curses.A_UNDERLINE | (curses.A_BOLD if i == f else 0)
+                put(win, y, fx, shown.ljust(fw), attr)
+                if i == f:
+                    cy, cx = y, fx + p - start
+        put(win, bh - 2, 3,
+            "Tab/↑↓ field · Enter next/save · Ctrl-S save · Esc cancel", col.dim())
+        try:
+            curses.curs_set(0 if cy is None else 1)
+        except curses.error:
+            pass
+        if cy is not None:
+            win.move(cy, cx)
+        win.refresh()
+
+        try:
+            k = win.get_wch()
+        except KeyboardInterrupt:
+            return None
+        key = labels[f][1]
+
+        if k in ("\x1b", "\x03"):
+            return None
+        if k in ("\x13",) or (k in ("\n", "\r", curses.KEY_ENTER) and f == len(labels) - 1):
+            if not vals["desc"].strip():
+                f = 0
+                continue
+            return vals
+        if k in ("\t", curses.KEY_DOWN, "\n", "\r", curses.KEY_ENTER):
+            f = (f + 1) % len(labels)
+        elif k in (curses.KEY_BTAB, curses.KEY_UP):
+            f = (f - 1) % len(labels)
+        elif key == "rank":
+            if k in (curses.KEY_RIGHT, "+", "l"):
+                vals["rank"] = min(N, vals["rank"] + 1)
+            elif k in (curses.KEY_LEFT, "-", "h"):
+                vals["rank"] = max(1, vals["rank"] - 1)
+            elif isinstance(k, str) and k in "12345678" and k:
+                vals["rank"] = int(k)
+        else:
+            t, p = vals[key], pos[key]
+            if k == curses.KEY_LEFT:
+                pos[key] = max(0, p - 1)
+            elif k == curses.KEY_RIGHT:
+                pos[key] = min(len(t), p + 1)
+            elif k in (curses.KEY_HOME, "\x01"):
+                pos[key] = 0
+            elif k in (curses.KEY_END, "\x05"):
+                pos[key] = len(t)
+            elif k in ("\x7f", "\b", curses.KEY_BACKSPACE):
+                if p > 0:
+                    vals[key] = t[:p - 1] + t[p:]
+                    pos[key] = p - 1
+            elif k == curses.KEY_DC:
+                vals[key] = t[:p] + t[p + 1:]
+            elif k == "\x15":  # Ctrl-U: clear
+                vals[key], pos[key] = "", 0
+            elif isinstance(k, str) and k.isprintable():
+                vals[key] = t[:p] + k + t[p:]
+                pos[key] = p + 1
+
+
+# ---------------------------------------------------------------- main UI
+def run(stdscr):
+    locale.setlocale(locale.LC_ALL, "")
+    curses.curs_set(0)
+    curses.raw()  # no XON/XOFF: Ctrl-S must not freeze the terminal
+    stdscr.keypad(True)
+    col = Colors()
+    items = load()
+    sel = items[0] if items else None
+    descending = False
+    by_age = False   # False: by maturity · True: oldest-touched first
+    query = ""       # active filter ("/" to set, Esc to clear)
+    top = 0
+    flash = ""
+
+    def ordered():
+        if by_age:
+            key = lambda i: (i["mod"] or "0000-00-00", i["rank"], i["desc"].lower())
+        else:
+            key = lambda i: (i["rank"], i["desc"].lower())
+        shown = [i for i in items if matches(i, query)] if query else items
+        return sorted(shown, key=key, reverse=descending)
+
+    while True:
+        rows = ordered()
+        if sel not in rows:
+            sel = rows[0] if rows else None
+        idx = rows.index(sel) if sel is not None else 0
+        H, W = stdscr.getmaxyx()
+        list_top, list_bot = 3, H - 4          # visible rows: [list_top, list_bot)
+        vis = max(1, list_bot - list_top)
+        top = max(0, min(top, max(0, len(rows) - vis)))
+        if idx < top:
+            top = idx
+        if idx >= top + vis:
+            top = idx - vis + 1
+
+        stdscr.erase()
+        # title + stage legend with counts
+        put(stdscr, 0, 1, "projman", col.bright() | curses.A_BOLD)
+        full = sum(3 + len(f" {STAGES[r-1][0]}") + 2 for r in range(1, N + 1))
+        named = 10 + full <= W
+        x = 10
+        for r in range(1, N + 1):
+            tail = f" {STAGES[r-1][0]}" if named else ""
+            if x + 3 + len(tail) >= W:
+                break
+            put(stdscr, 0, x, f" {r} ", col.badge(r))
+            put(stdscr, 0, x + 3, tail, col.text(r))
+            x += 3 + len(tail) + 2
+
+        # column layout
+        wr, wst = 5, 13
+        # column widths adapt to content; OBS keeps at least ~20 columns
+        wd = max(14, min(40, max((len(i["desc"]) for i in items), default=0)))
+        wm = max(6, min(40, max((len(i["member"]) for i in items), default=0)))
+        wi = max(2, len(str(len(rows))))
+        wmod = 17
+        room = W - (1 + wi + 1 + 9 + wst + 3) - 20 - wmod - 1   # space for desc + member
+        while wd + wm > room and (wd > 14 or wm > 6):
+            if wm - 6 >= wd - 14 and wm > 6:
+                wm -= 1
+            else:
+                wd -= 1
+        xi = 1
+        xr = xi + wi + 1
+        xst = xr + 9
+        xd = xst + wst + 1
+        xm = xd + wd + 1
+        xo = xm + wm + 1
+        xmod = W - wmod - 1
+        wo = max(0, xmod - xo - 1)
+        hdr = col.dim() | curses.A_BOLD
+        put(stdscr, 2, xi, "#".rjust(wi), hdr)
+        put(stdscr, 2, xr, "MATURITY", hdr)
+        put(stdscr, 2, xst, "STAGE", hdr)
+        put(stdscr, 2, xd, "PROJECT", hdr)
+        put(stdscr, 2, xm, "WITH", hdr)
+        put(stdscr, 2, xo, "OBS", hdr)
+        put(stdscr, 2, xmod, "LAST MODIFIED", hdr)
+        put(stdscr, 1, 0, "─" * (W - 1), col.dim())
+        if query:
+            put(stdscr, 1, 2, clip(f" filter: {query}  ({len(rows)}/{len(items)})  Esc clears ", W - 4),
+                col.bright() | curses.A_BOLD)
+
+        if not rows:
+            put(stdscr, 5, 3, "No match — Esc clears the filter." if query
+                else "No projects yet — press  a  to add one.", col.dim())
+        for n, it in enumerate(rows[top:top + vis]):
+            y = list_top + n
+            is_sel = it is sel
+            r = it["rank"]
+            t = col.text(r, is_sel)
+            if is_sel:
+                put(stdscr, y, 0, " " * (W - 1), t)
+                put(stdscr, y, 0, "▌", t)
+            put(stdscr, y, xi, str(top + n + 1).rjust(wi), col.dim(is_sel))
+            put(stdscr, y, xr, f" {r} ", col.badge(r))
+            put(stdscr, y, xst, clip(STAGES[r - 1][0], wst).ljust(wst), t | curses.A_BOLD)
+            put(stdscr, y, xd, clip(it["desc"], wd).ljust(wd),
+                col.bright(is_sel) | curses.A_BOLD)
+            put(stdscr, y, xm, clip(it["member"] or "—", wm).ljust(wm),
+                col.bright(is_sel) if it["member"] else col.dim(is_sel))
+            put(stdscr, y, xo, clip(it["obs"], wo), col.dim(is_sel))
+            put(stdscr, y, xmod, age_text(it["mod"]).ljust(wmod), col.dim(is_sel))
+        if len(rows) > vis:
+            put(stdscr, 2, W - 9, f"{idx+1}/{len(rows)}", col.dim())
+
+        # detail of selected (full OBS)
+        put(stdscr, H - 3, 0, "─" * (W - 1), col.dim())
+        if flash:
+            put(stdscr, H - 2, 1, flash, col.dim())
+        elif sel is not None and sel["obs"]:
+            put(stdscr, H - 2, 1, clip(sel["obs"], W - 3), col.bright())
+        keys = ("↑↓/jk move · a add · e edit · ←→/hl · 1-8 maturity · d delete · "
+                "u undo · / filter · s flip · m age · q quit")
+        put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
+        stdscr.refresh()
+        flash = ""
+
+        curses.curs_set(0)
+        try:
+            k = stdscr.get_wch()
+        except KeyboardInterrupt:
+            break
+        if k in ("q", "Q", "\x03"):
+            break
+        elif k in (curses.KEY_DOWN, "j") and rows:
+            sel = rows[min(len(rows) - 1, idx + 1)]
+        elif k in (curses.KEY_UP, "k") and rows:
+            sel = rows[max(0, idx - 1)]
+        elif k == curses.KEY_NPAGE and rows:
+            sel = rows[min(len(rows) - 1, idx + vis)]
+        elif k == curses.KEY_PPAGE and rows:
+            sel = rows[max(0, idx - vis)]
+        elif k in (curses.KEY_HOME, "g") and rows:
+            sel = rows[0]
+        elif k in (curses.KEY_END, "G") and rows:
+            sel = rows[-1]
+        elif k == "s":
+            descending = not descending
+        elif k == "m":
+            by_age = not by_age
+        elif k == "/":
+            q = prompt(stdscr, col, "filter:", query)
+            if q is not None:
+                query = q.strip()
+        elif k == "\x1b" and query:
+            query = ""
+        elif k == "u":
+            prev = load(BACKUP_FILE)
+            if os.path.exists(BACKUP_FILE):
+                old_desc = sel["desc"] if sel else None
+                items[:] = prev
+                save(items)          # current state becomes the new .bak → u again = redo
+                sel = next((i for i in items if i["desc"] == old_desc), None)
+                flash = "undone (press u again to redo)"
+        elif k == "a":
+            new = form(stdscr, col, "New project",
+                       {"desc": "", "rank": 1, "member": "", "obs": "", "mod": ""})
+            if new:
+                new["mod"] = today()
+                items.append(new)
+                query = ""
+                sel = new
+                save(items)
+        elif k in ("e", "\n", "\r", curses.KEY_ENTER) and sel is not None:
+            new = form(stdscr, col, "Edit project", sel)
+            if new:
+                if any(new[f] != sel[f] for f in ("desc", "rank", "member", "obs")):
+                    new["mod"] = today()
+                sel.update(new)
+                save(items)
+        elif k in (curses.KEY_RIGHT, "l", "+") and sel is not None:
+            if sel["rank"] < N:
+                sel["rank"] += 1
+                sel["mod"] = today()
+                save(items)
+        elif k in (curses.KEY_LEFT, "h", "-") and sel is not None:
+            if sel["rank"] > 1:
+                sel["rank"] -= 1
+                sel["mod"] = today()
+                save(items)
+        elif isinstance(k, str) and k in "12345678" and k and sel is not None:
+            if sel["rank"] != int(k):
+                sel["rank"] = int(k)
+                sel["mod"] = today()
+                save(items)
+        elif k == "d" and sel is not None:
+            put(stdscr, H - 2, 1, " " * (W - 2))
+            put(stdscr, H - 2, 1, f"Delete “{clip(sel['desc'], 40)}”? (y/N)",
+                col.bright() | curses.A_BOLD)
+            stdscr.refresh()
+            if stdscr.get_wch() in ("y", "Y"):
+                nxt = rows[idx + 1] if idx + 1 < len(rows) else (rows[idx - 1] if idx else None)
+                items.remove(sel)
+                sel = nxt
+                save(items)
+        elif k == curses.KEY_RESIZE:
+            pass
+
+
+def main():
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print(__doc__)
+        return
+    curses.wrapper(run)
+
+
+if __name__ == "__main__":
+    main()
