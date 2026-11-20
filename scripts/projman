@@ -10,6 +10,13 @@ Data lives in ~/.projman.json (override with $PROJMAN_FILE).
 Each project also carries a "claude" field: a one-line status written only by
 Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
 bottom detail line. projman never edits it and re-reads it from disk on save.
+
+Navigation (rows with a PATH that exists on this machine):
+  Enter  jump: projman exits and the shell lands in PATH (needs the bash wrapper
+         function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
+  o      open a new terminal in PATH (projman stays open)
+  c      open a new terminal in PATH running `claude --continue` (or a fresh `claude`)
+Terminal: $PROJMAN_TERMINAL, default alacritty (needs --working-directory and -e).
 Pure standard library (curses). Run:  python3 projman.py
 """
 import curses
@@ -19,6 +26,7 @@ import locale
 import os
 import sys
 import shutil
+import subprocess
 import tempfile
 import unicodedata
 import uuid
@@ -100,6 +108,21 @@ def purge(items):
 
 
 BACKUP_FILE = DATA_FILE + ".bak"
+CD_FILE = os.environ.get("PROJMAN_CDFILE", "")          # set by the bash wrapper
+TERMINAL = os.environ.get("PROJMAN_TERMINAL", "alacritty")
+CLAUDE_CMD = "claude --continue || claude; exec bash"
+
+
+def proj_dir(it):
+    """(existing directory or None, expanded path text) for a project's PATH."""
+    p = os.path.expanduser(it["path"].strip()) if it["path"].strip() else ""
+    return (p if p and os.path.isdir(p) else None), p
+
+
+def open_terminal(d, cmd=None):
+    args = [TERMINAL, "--working-directory", d] + (["-e", "bash", "-c", cmd] if cmd else [])
+    subprocess.Popen(args, cwd=d, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
 
 
 def merge_claude(items):
@@ -505,8 +528,8 @@ def run(stdscr):
             keys = ("↑↓/jk move · r restore · 1-8 move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
         else:
-            keys = ("↑↓/jk move · a add · e edit · ←→/hl · 1-8 maturity · d trash · "
-                    "u undo · / filter · s flip · m age · t trash view · q quit")
+            keys = ("↑↓/jk move · Enter go · o terminal · c claude · a add · e edit · ←→/hl · "
+                    "1-8 maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
         flash = ""
@@ -564,7 +587,25 @@ def run(stdscr):
                 query, view_trash = "", new["rank"] == 0
                 sel = new
                 save(items)
-        elif k in ("e", "\n", "\r", curses.KEY_ENTER) and sel is not None:
+        elif k in ("\n", "\r", curses.KEY_ENTER, "o", "c") and sel is not None:
+            d, p = proj_dir(sel)
+            if not p:
+                flash = "no PATH set for this project"
+            elif not d:
+                flash = f"PATH not found on this machine: {p}"
+            elif k in ("o", "c"):
+                try:
+                    open_terminal(d, CLAUDE_CMD if k == "c" else None)
+                    flash = f"opened {'claude' if k == 'c' else 'a terminal'} in {p}"
+                except OSError as e:
+                    flash = f"could not start {TERMINAL}: {e}"
+            elif not CD_FILE:
+                flash = f"Enter needs the bash wrapper `projman` to cd · path: {p}"
+            else:
+                with open(CD_FILE, "w", encoding="utf-8") as f:
+                    f.write(d)
+                break
+        elif k == "e" and sel is not None:
             new = form(stdscr, col, "Edit project", sel)
             if new:
                 changed = any(new[f] != sel[f] for f in ("desc", "rank", "member", "path", "obs"))

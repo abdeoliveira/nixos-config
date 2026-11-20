@@ -142,6 +142,15 @@ programs.neovim = {
       complete -W 'backup restore list prune delete help unlock mount check find check-download /tmp/external-hd/data' restic-gdrive
       #eval "$(direnv hook bash)"      
 
+      # projman: Enter on a project makes projman exit and this shell cd into its PATH
+      projman() {
+        local f d
+        f=$(mktemp -t projman-cd.XXXXXX) || return
+        PROJMAN_CDFILE="$f" command projman "$@"
+        d=$(cat "$f" 2>/dev/null); rm -f "$f"
+        [ -n "$d" ] && cd -- "$d"
+      }
+
 # Start Niri on tty1
   if [ "$(tty)" = "/dev/tty1" ]; then
      niri-auto-unlock.sh
@@ -211,6 +220,7 @@ systemd.user.services.taildrop-receiver = {
     ".config/waybar".source = ./waybar;
     ".config/wallpaper".source = ./wallpapers/wallpaper;
     ".config/cat_installer/ca.pem".source = ./certs/ca.pem;
+    ".claude/bin/projman_claude.py".source = ./scripts/projman-claude;   # Claude's projman status helper
     };
 
 }
