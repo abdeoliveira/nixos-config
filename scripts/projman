@@ -2,10 +2,14 @@
 """projman — a tiny colourful TUI to track research projects by maturity.
 
 Stages (maturity):
+  0 trash (hidden; deleted for good after $PROJMAN_TRASH_MONTHS months, default 3)
   1 hold · 2 waiting · 3 running · 4 draft · 5 my review
   6 team review · 7 submitted · 8 resubmitted
 
 Data lives in ~/.projman.json (override with $PROJMAN_FILE).
+Each project also carries a "claude" field: a one-line status written only by
+Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
+bottom detail line. projman never edits it and re-reads it from disk on save.
 Pure standard library (curses). Run:  python3 projman.py
 """
 import curses
@@ -17,6 +21,7 @@ import sys
 import shutil
 import tempfile
 import unicodedata
+import uuid
 
 os.environ.setdefault("ESCDELAY", "25")
 
@@ -34,11 +39,26 @@ STAGES = [  # grey = parked; cyan->orange = ball with me; blue/violet = ball els
     ("resubmitted",  171, curses.COLOR_MAGENTA),
 ]
 N = len(STAGES)
+# maturity 0 = trash: hidden from the main list, purged automatically after N months
+TRASH_MONTHS = max(1, int(os.environ.get("PROJMAN_TRASH_MONTHS", "3") or 3))
+TRASH_DAYS = TRASH_MONTHS * 30
+
+
+def sname(r):
+    return "trash" if r == 0 else STAGES[r - 1][0]
 SEL_BG = 237  # background of the selected row (256-colour terminals)
 
 
 # ---------------------------------------------------------------- storage
+IDS_ADDED = False   # set by load() when it had to assign ids (they are saved at startup)
+
+
+def new_id():
+    return uuid.uuid4().hex[:8]
+
+
 def load(path=None):
+    global IDS_ADDED
     try:
         with open(path or DATA_FILE, encoding="utf-8") as f:
             items = json.load(f)
@@ -46,21 +66,66 @@ def load(path=None):
         return []
     out = []
     for it in items:
+        if not it.get("id"):
+            IDS_ADDED = True
         out.append({
+            "id": str(it.get("id") or new_id()),       # stable key (descriptions may repeat)
             "desc": str(it.get("desc", "")),
-            "rank": min(N, max(1, int(it.get("rank", 1)))),
+            "rank": min(N, max(0, int(it.get("rank", 1)))),
+            "prev": min(N, max(1, int(it.get("prev", 1) or 1))),   # stage before trashing
             "member": str(it.get("member", "")),
+            "path": str(it.get("path", "")),
             "obs": str(it.get("obs", "")),
             "mod": str(it.get("mod", "")),   # YYYY-MM-DD, "" = unknown
+            "claude": str(it.get("claude", "")),   # owned by Claude Code, read-only here
         })
     return out
+
+
+def purge(items):
+    """Drop trash older than TRASH_DAYS. Returns (kept, n_purged, changed)."""
+    keep, n, changed = [], 0, False
+    for it in items:
+        if it["rank"] == 0:
+            try:
+                age = (datetime.date.today() - datetime.date.fromisoformat(it["mod"])).days
+            except ValueError:
+                it["mod"], changed = datetime.date.today().isoformat(), True   # start its clock
+                age = 0
+            if age >= TRASH_DAYS:
+                n += 1
+                continue
+        keep.append(it)
+    return keep, n, changed
 
 
 BACKUP_FILE = DATA_FILE + ".bak"
 
 
+def merge_claude(items):
+    """Copy the "claude" field from the file on disk into items (Claude Code is its only
+    writer, so the disk copy is always the newest). Match by id, else by (desc, path)."""
+    try:
+        with open(DATA_FILE, encoding="utf-8") as f:
+            disk = json.load(f)
+    except (OSError, ValueError):
+        return
+    by_id, by_key = {}, {}
+    for d in disk:
+        if d.get("id"):
+            by_id[d["id"]] = d.get("claude", "")
+        k = (d.get("desc", ""), d.get("path", ""))
+        by_key[k] = None if k in by_key else d.get("claude", "")
+    for it in items:
+        if it["id"] in by_id:
+            it["claude"] = by_id[it["id"]]
+        elif by_key.get((it["desc"], it["path"])) is not None:
+            it["claude"] = by_key[(it["desc"], it["path"])]
+
+
 def save(items):
     """Write atomically; the previous version is kept as <file>.bak (one-step undo)."""
+    merge_claude(items)
     if os.path.exists(DATA_FILE):
         try:
             shutil.copy2(DATA_FILE, BACKUP_FILE)
@@ -81,7 +146,8 @@ def fold(s):
 
 
 def matches(it, query):
-    hay = fold(" ".join((it["desc"], it["member"], it["obs"], STAGES[it["rank"] - 1][0])))
+    hay = fold(" ".join((it["desc"], it["member"], it["path"], it["obs"], it["claude"],
+                         sname(it["rank"]))))
     return all(tok in hay for tok in fold(query).split())
 
 
@@ -143,6 +209,13 @@ def clip(s, w):
     return s if len(s) <= w else s[: max(0, w - 1)] + "…"
 
 
+def clip_left(s, w):
+    """Like clip() but keeps the END of the text (the interesting part of a path)."""
+    if w <= 0:
+        return ""
+    return s if len(s) <= w else "…" + s[-(w - 1):] if w > 1 else "…"
+
+
 def put(win, y, x, s, attr=0):
     try:
         win.addstr(y, x, s, attr)
@@ -164,17 +237,22 @@ class Colors:
             curses.init_pair(i, fg, -1)                      # normal text
             curses.init_pair(20 + i, fg, SEL_BG if rich else -1)  # selected row
             curses.init_pair(40 + i, 16 if rich else curses.COLOR_BLACK, fg)  # badge
+        curses.init_pair(9, 242 if rich else curses.COLOR_WHITE, -1)           # trash
+        curses.init_pair(29, 248 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
+        curses.init_pair(49, 16 if rich else curses.COLOR_BLACK, 242 if rich else curses.COLOR_WHITE)
         curses.init_pair(60, 245 if rich else curses.COLOR_WHITE, -1)          # dim
         curses.init_pair(61, 245 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
         curses.init_pair(62, 252 if rich else curses.COLOR_WHITE, -1)          # bright
         curses.init_pair(63, 252 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
 
     def text(self, rank, sel=False):
-        a = curses.color_pair((20 if sel else 0) + rank)
+        a = curses.color_pair((20 if sel else 0) + (rank or 9))
+        if rank == 0 and not self.rich:
+            a |= curses.A_DIM
         return a | (curses.A_BOLD if sel else 0)
 
     def badge(self, rank):
-        return curses.color_pair(40 + rank) | curses.A_BOLD
+        return curses.color_pair(40 + (rank or 9)) | curses.A_BOLD
 
     def dim(self, sel=False):
         return curses.color_pair(61 if sel else 60)
@@ -187,13 +265,13 @@ class Colors:
 def form(stdscr, col, title, item):
     """Modal editor. Returns edited dict or None if cancelled."""
     H, W = stdscr.getmaxyx()
-    bw, bh = min(W - 2, 78), 13
+    bw, bh = min(W - 2, 78), 15
     win = curses.newwin(bh, bw, max(0, (H - bh) // 2), max(0, (W - bw) // 2))
     win.keypad(True)
     labels = [("Description", "desc"), ("Maturity", "rank"),
-              ("Team member", "member"), ("OBS", "obs")]
+              ("Team member", "member"), ("Path", "path"), ("OBS", "obs")]
     vals = dict(item)
-    pos = {k: len(vals[k]) for k in ("desc", "member", "obs")}
+    pos = {k: len(vals[k]) for k in ("desc", "member", "path", "obs")}
     f = 0
     fx = 17
     fw = bw - fx - 3
@@ -208,9 +286,9 @@ def form(stdscr, col, title, item):
             if key == "rank":
                 r = vals["rank"]
                 put(win, y, fx, f" {r} ", col.badge(r))
-                put(win, y, fx + 4, STAGES[r - 1][0], col.text(r) | curses.A_BOLD)
+                put(win, y, fx + 4, sname(r), col.text(r) | curses.A_BOLD)
                 if i == f:
-                    put(win, y, fx + 18, "← →  or 1-8", col.dim())
+                    put(win, y, fx + 18, "← →  or 0-8  (0 = trash)", col.dim())
             else:
                 text, p = vals[key], pos[key]
                 start = max(0, p - fw + 1)
@@ -250,8 +328,8 @@ def form(stdscr, col, title, item):
             if k in (curses.KEY_RIGHT, "+", "l"):
                 vals["rank"] = min(N, vals["rank"] + 1)
             elif k in (curses.KEY_LEFT, "-", "h"):
-                vals["rank"] = max(1, vals["rank"] - 1)
-            elif isinstance(k, str) and k in "12345678" and k:
+                vals["rank"] = max(0, vals["rank"] - 1)
+            elif isinstance(k, str) and k in "012345678" and k:
                 vals["rank"] = int(k)
         else:
             t, p = vals[key], pos[key]
@@ -288,22 +366,33 @@ def run(stdscr):
     descending = False
     by_age = False   # False: by maturity · True: oldest-touched first
     query = ""       # active filter ("/" to set, Esc to clear)
+    view_trash = False
+    hint = None      # row to select if the selected one leaves the view
     top = 0
     flash = ""
+    items[:], n_purged, changed = purge(items)
+    if n_purged or changed or IDS_ADDED:
+        save(items)
+    if n_purged:
+        flash = f"purged {n_purged} project(s) trashed more than {TRASH_MONTHS} months ago"
 
     def ordered():
-        if by_age:
+        if view_trash:      # soonest-to-be-purged first
+            key = lambda i: (i["mod"], i["desc"].lower())
+        elif by_age:
             key = lambda i: (i["mod"] or "0000-00-00", i["rank"], i["desc"].lower())
         else:
             key = lambda i: (i["rank"], i["desc"].lower())
-        shown = [i for i in items if matches(i, query)] if query else items
+        pool = [i for i in items if (i["rank"] == 0) == view_trash]
+        shown = [i for i in pool if matches(i, query)] if query else pool
         return sorted(shown, key=key, reverse=descending)
 
     while True:
         rows = ordered()
         if sel not in rows:
-            sel = rows[0] if rows else None
+            sel = hint if hint in rows else (rows[0] if rows else None)
         idx = rows.index(sel) if sel is not None else 0
+        hint = (rows[idx + 1] if idx + 1 < len(rows) else rows[idx - 1] if idx else None) if rows else None
         H, W = stdscr.getmaxyx()
         list_top, list_bot = 3, H - 4          # visible rows: [list_top, list_bot)
         vis = max(1, list_bot - list_top)
@@ -316,53 +405,65 @@ def run(stdscr):
         stdscr.erase()
         # title + stage legend with counts
         put(stdscr, 0, 1, "projman", col.bright() | curses.A_BOLD)
-        full = sum(3 + len(f" {STAGES[r-1][0]}") + 2 for r in range(1, N + 1))
-        named = 10 + full <= W
-        x = 10
-        for r in range(1, N + 1):
-            tail = f" {STAGES[r-1][0]}" if named else ""
-            if x + 3 + len(tail) >= W:
-                break
-            put(stdscr, 0, x, f" {r} ", col.badge(r))
-            put(stdscr, 0, x + 3, tail, col.text(r))
-            x += 3 + len(tail) + 2
+        if view_trash:
+            put(stdscr, 0, 10, " 0 ", col.badge(0))
+            put(stdscr, 0, 13, " trash", col.text(0) | curses.A_BOLD)
+            put(stdscr, 0, 21, clip(
+                f"permanently deleted {TRASH_MONTHS} months after trashing", W - 22), col.dim())
+        else:
+            full = sum(3 + len(f" {STAGES[r-1][0]}") + 2 for r in range(1, N + 1))
+            named = 10 + full <= W
+            x = 10
+            for r in range(1, N + 1):
+                tail = f" {STAGES[r-1][0]}" if named else ""
+                if x + 3 + len(tail) >= W:
+                    break
+                put(stdscr, 0, x, f" {r} ", col.badge(r))
+                put(stdscr, 0, x + 3, tail, col.text(r))
+                x += 3 + len(tail) + 2
 
         # column layout
-        wr, wst = 5, 13
+        wst = 12
         # column widths adapt to content; OBS keeps at least ~20 columns
-        wd = max(14, min(40, max((len(i["desc"]) for i in items), default=0)))
-        wm = max(6, min(40, max((len(i["member"]) for i in items), default=0)))
+        mins = {"d": 14, "m": 6, "p": 6}
+        w = {"d": max(mins["d"], min(40, max((len(i["desc"]) for i in items), default=0))),
+             "m": max(mins["m"], min(40, max((len(i["member"]) for i in items), default=0))),
+             "p": max(mins["p"], min(40, max((len(i["path"]) for i in items), default=0)))}
         wi = max(2, len(str(len(rows))))
-        wmod = 17
-        room = W - (1 + wi + 1 + 9 + wst + 3) - 20 - wmod - 1   # space for desc + member
-        while wd + wm > room and (wd > 14 or wm > 6):
-            if wm - 6 >= wd - 14 and wm > 6:
-                wm -= 1
-            else:
-                wd -= 1
+        wmod = 21 if view_trash else 17
         xi = 1
-        xr = xi + wi + 1
-        xst = xr + 9
+        xst = xi + wi + 1
         xd = xst + wst + 1
-        xm = xd + wd + 1
-        xo = xm + wm + 1
         xmod = W - wmod - 1
+        room = xmod - 24 - xd           # space for desc + member + path (+3 gaps, OBS >= 20)
+        while sum(w.values()) > room and any(w[k] > mins[k] for k in w):
+            k = max(w, key=lambda k: w[k] - mins[k])
+            w[k] -= 1
+        wd, wm, wp = w["d"], w["m"], w["p"]
+        xm = xd + wd + 1
+        xp = xm + wm + 1
+        xo = xp + wp + 1
         wo = max(0, xmod - xo - 1)
         hdr = col.dim() | curses.A_BOLD
         put(stdscr, 2, xi, "#".rjust(wi), hdr)
-        put(stdscr, 2, xr, "MATURITY", hdr)
         put(stdscr, 2, xst, "STAGE", hdr)
         put(stdscr, 2, xd, "PROJECT", hdr)
         put(stdscr, 2, xm, "WITH", hdr)
+        put(stdscr, 2, xp, "PATH", hdr)
         put(stdscr, 2, xo, "OBS", hdr)
-        put(stdscr, 2, xmod, "LAST MODIFIED", hdr)
+        put(stdscr, 2, xmod, "TRASHED  LEFT" if view_trash else "LAST MODIFIED", hdr)
         put(stdscr, 1, 0, "─" * (W - 1), col.dim())
+        n_trash = sum(1 for i in items if i["rank"] == 0)
+        if n_trash and not view_trash:
+            lab = f" trash: {n_trash}  (t) "
+            put(stdscr, 1, W - len(lab) - 2, lab, col.dim())
         if query:
             put(stdscr, 1, 2, clip(f" filter: {query}  ({len(rows)}/{len(items)})  Esc clears ", W - 4),
                 col.bright() | curses.A_BOLD)
 
         if not rows:
             put(stdscr, 5, 3, "No match — Esc clears the filter." if query
+                else "Trash is empty." if view_trash
                 else "No projects yet — press  a  to add one.", col.dim())
         for n, it in enumerate(rows[top:top + vis]):
             y = list_top + n
@@ -373,14 +474,24 @@ def run(stdscr):
                 put(stdscr, y, 0, " " * (W - 1), t)
                 put(stdscr, y, 0, "▌", t)
             put(stdscr, y, xi, str(top + n + 1).rjust(wi), col.dim(is_sel))
-            put(stdscr, y, xr, f" {r} ", col.badge(r))
-            put(stdscr, y, xst, clip(STAGES[r - 1][0], wst).ljust(wst), t | curses.A_BOLD)
+            put(stdscr, y, xst, clip(sname(r), wst).ljust(wst), t | curses.A_BOLD)
             put(stdscr, y, xd, clip(it["desc"], wd).ljust(wd),
                 col.bright(is_sel) | curses.A_BOLD)
             put(stdscr, y, xm, clip(it["member"] or "—", wm).ljust(wm),
                 col.bright(is_sel) if it["member"] else col.dim(is_sel))
+            put(stdscr, y, xp, clip_left(it["path"] or "—", wp).ljust(wp),
+                col.bright(is_sel) if it["path"] else col.dim(is_sel))
             put(stdscr, y, xo, clip(it["obs"], wo), col.dim(is_sel))
-            put(stdscr, y, xmod, age_text(it["mod"]).ljust(wmod), col.dim(is_sel))
+            if view_trash:
+                try:
+                    left = TRASH_DAYS - (datetime.date.today()
+                                         - datetime.date.fromisoformat(it["mod"])).days
+                except ValueError:
+                    left = TRASH_DAYS
+                last = f"{it['mod']}  {max(0, left)}d left"
+            else:
+                last = age_text(it["mod"])
+            put(stdscr, y, xmod, last.ljust(wmod), col.dim(is_sel))
         if len(rows) > vis:
             put(stdscr, 2, W - 9, f"{idx+1}/{len(rows)}", col.dim())
 
@@ -388,10 +499,22 @@ def run(stdscr):
         put(stdscr, H - 3, 0, "─" * (W - 1), col.dim())
         if flash:
             put(stdscr, H - 2, 1, flash, col.dim())
-        elif sel is not None and sel["obs"]:
-            put(stdscr, H - 2, 1, clip(sel["obs"], W - 3), col.bright())
-        keys = ("↑↓/jk move · a add · e edit · ←→/hl · 1-8 maturity · d delete · "
-                "u undo · / filter · s flip · m age · q quit")
+        elif sel is not None and (sel["obs"] or sel["claude"]):
+            x = 1
+            cl = ("▸ " + sel["claude"]) if sel["claude"] else ""
+            if sel["obs"]:
+                room = W - 3 - (len(cl) + 3 if cl else 0)
+                s = clip(sel["obs"], max(20, room))
+                put(stdscr, H - 2, x, s, col.bright())
+                x += len(s) + 3
+            if cl and x < W - 4:
+                put(stdscr, H - 2, x, clip(cl, W - x - 2), col.text(3))
+        if view_trash:
+            keys = ("↑↓/jk move · r restore · 1-8 move to stage · d delete forever · "
+                    "u undo · / filter · t/Esc back · q quit")
+        else:
+            keys = ("↑↓/jk move · a add · e edit · ←→/hl · 1-8 maturity · d trash · "
+                    "u undo · / filter · s flip · m age · t trash view · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
         flash = ""
@@ -425,6 +548,10 @@ def run(stdscr):
                 query = q.strip()
         elif k == "\x1b" and query:
             query = ""
+        elif k == "\x1b" and view_trash:
+            view_trash, sel = False, None
+        elif k == "t":
+            view_trash, query, sel = not view_trash, "", None
         elif k == "u":
             prev = load(BACKUP_FILE)
             if os.path.exists(BACKUP_FILE):
@@ -435,18 +562,24 @@ def run(stdscr):
                 flash = "undone (press u again to redo)"
         elif k == "a":
             new = form(stdscr, col, "New project",
-                       {"desc": "", "rank": 1, "member": "", "obs": "", "mod": ""})
+                       {"id": new_id(), "desc": "", "rank": 1, "prev": 1, "member": "",
+                        "path": "", "obs": "", "mod": "", "claude": ""})
             if new:
                 new["mod"] = today()
+                if new["rank"] == 0:
+                    new["prev"] = 1
                 items.append(new)
-                query = ""
+                query, view_trash = "", new["rank"] == 0
                 sel = new
                 save(items)
         elif k in ("e", "\n", "\r", curses.KEY_ENTER) and sel is not None:
             new = form(stdscr, col, "Edit project", sel)
             if new:
-                if any(new[f] != sel[f] for f in ("desc", "rank", "member", "obs")):
+                changed = any(new[f] != sel[f] for f in ("desc", "rank", "member", "path", "obs"))
+                if changed and not (sel["rank"] == 0 and new["rank"] == 0):  # editing trash keeps its clock
                     new["mod"] = today()
+                if new["rank"] == 0 and sel["rank"] != 0:
+                    new["prev"] = sel["rank"]
                 sel.update(new)
                 save(items)
         elif k in (curses.KEY_RIGHT, "l", "+") and sel is not None:
@@ -459,20 +592,31 @@ def run(stdscr):
                 sel["rank"] -= 1
                 sel["mod"] = today()
                 save(items)
-        elif isinstance(k, str) and k in "12345678" and k and sel is not None:
-            if sel["rank"] != int(k):
-                sel["rank"] = int(k)
-                sel["mod"] = today()
+        elif isinstance(k, str) and k in "012345678" and k and sel is not None:
+            r = int(k)
+            if r == 0 and sel["rank"] != 0:
+                sel["prev"], sel["rank"], sel["mod"] = sel["rank"], 0, today()
+                flash = "moved to trash (t to view · u to undo)"
                 save(items)
+            elif r != 0 and sel["rank"] != r:
+                sel["rank"], sel["mod"] = r, today()
+                save(items)
+        elif k == "r" and view_trash and sel is not None:
+            sel["rank"], sel["mod"] = sel["prev"], today()
+            flash = f"restored to {sname(sel['rank'])}"
+            save(items)
+        elif k == "d" and sel is not None and not view_trash:
+            sel["prev"], sel["rank"], sel["mod"] = sel["rank"], 0, today()
+            flash = "moved to trash (t to view · u to undo)"
+            save(items)
         elif k == "d" and sel is not None:
             put(stdscr, H - 2, 1, " " * (W - 2))
-            put(stdscr, H - 2, 1, f"Delete “{clip(sel['desc'], 40)}”? (y/N)",
+            put(stdscr, H - 2, 1, f"Delete forever “{clip(sel['desc'], 40)}”? (y/N)",
                 col.bright() | curses.A_BOLD)
             stdscr.refresh()
             if stdscr.get_wch() in ("y", "Y"):
-                nxt = rows[idx + 1] if idx + 1 < len(rows) else (rows[idx - 1] if idx else None)
                 items.remove(sel)
-                sel = nxt
+                sel = hint
                 save(items)
         elif k == curses.KEY_RESIZE:
             pass
