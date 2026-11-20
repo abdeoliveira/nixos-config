@@ -499,16 +499,8 @@ def run(stdscr):
         put(stdscr, H - 3, 0, "─" * (W - 1), col.dim())
         if flash:
             put(stdscr, H - 2, 1, flash, col.dim())
-        elif sel is not None and (sel["obs"] or sel["claude"]):
-            x = 1
-            cl = ("▸ " + sel["claude"]) if sel["claude"] else ""
-            if sel["obs"]:
-                room = W - 3 - (len(cl) + 3 if cl else 0)
-                s = clip(sel["obs"], max(20, room))
-                put(stdscr, H - 2, x, s, col.bright())
-                x += len(s) + 3
-            if cl and x < W - 4:
-                put(stdscr, H - 2, x, clip(cl, W - x - 2), col.text(3))
+        elif sel is not None and sel["claude"]:     # bottom line: Claude's status only
+            put(stdscr, H - 2, 1, clip("▸ " + sel["claude"], W - 3), col.text(3))
         if view_trash:
             keys = ("↑↓/jk move · r restore · 1-8 move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
