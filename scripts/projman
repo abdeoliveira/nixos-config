@@ -486,18 +486,18 @@ def run(stdscr):
         idx = rows.index(sel) if sel is not None else 0
         hint = (rows[idx + 1] if idx + 1 < len(rows) else rows[idx - 1] if idx else None) if rows else None
         H, W = stdscr.getmaxyx()
-        # layout: list block (# STAGE PROJECT WITH) + detail box of the selected project,
+        # layout: list block (# STAGE PROJECT TEAM) + detail box of the selected project,
         # beside the list when at least ~40 columns remain, otherwise below it
         wst = 12
         wi = max(2, len(str(len(rows))))
         wd = max(14, min(40, max((len(i["desc"]) for i in items), default=0)))
-        wm = max(6, min(20, max((len(i["member"]) for i in items), default=0)))
+        wm = max(6, min(30, max((len(i["member"]) for i in items), default=0)))
         xi = 1
         xst = xi + wi + 1
         xdot = xst + wst + 1                  # job: "•" running, "◦" expected end passed
         xd = xdot + 2
         side = W - (xd + wd + 1 + wm + 1) >= 42
-        if not side:                          # narrow: shrink PROJECT, then WITH, to fit
+        if not side:                          # narrow: shrink PROJECT, then TEAM, to fit
             avail = W - xd - 2
             if wd + 1 + wm > avail:
                 wd = max(8, avail - 1 - wm)
