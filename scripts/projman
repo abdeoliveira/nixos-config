@@ -9,10 +9,15 @@ Stages (maturity):
 Data lives in ~/.projman.json (override with $PROJMAN_FILE).
 Each project also carries a "claude" field: a one-line status written only by
 Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
-bottom detail line. projman never edits it and re-reads it from disk on save.
+detail box of the selected project. projman never edits it and re-reads it from disk on save.
 
+Layout: the list shows # STAGE PROJECT WITH; the detail box (right of the list, or below it
+on narrow terminals) shows the selected project: stage and last modified, WITH, PATH (as
+~/..., omitted when unset), OBS in full and the Claude status.
+
+Enter edits the selected project (form).
 Navigation (rows with a PATH that exists on this machine):
-  Enter  jump: projman exits and the shell lands in PATH (needs the bash wrapper
+  n      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
   o      open a new terminal in PATH (projman stays open)
   c      open a new terminal in PATH running `claude --continue` (or a fresh `claude`)
@@ -28,6 +33,7 @@ import sys
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import unicodedata
 import uuid
 
@@ -399,6 +405,35 @@ def run(stdscr):
     if n_purged:
         flash = f"purged {n_purged} project(s) trashed more than {TRASH_MONTHS} months ago"
 
+    def detail(it, width):
+        """Lines (text, attr) of the detail box: name, stage + date, with, path, OBS, Claude."""
+        r = it["rank"]
+        out = [(it["desc"] or "—", col.bright() | curses.A_BOLD)]
+        if r == 0:
+            try:
+                left = TRASH_DAYS - (datetime.date.today()
+                                     - datetime.date.fromisoformat(it["mod"])).days
+            except ValueError:
+                left = TRASH_DAYS
+            out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(0)))
+        else:
+            out.append((f"{sname(r)} · modified {age_text(it['mod'])}", col.text(r) | curses.A_BOLD))
+        out.append((f"with  {it['member'] or '—'}", col.bright() if it["member"] else col.dim()))
+        p = it["path"].strip()
+        if p:
+            home, ap = os.path.expanduser("~"), os.path.expanduser(p)
+            if ap == home or ap.startswith(home + os.sep):
+                p = "~" + ap[len(home):]
+            out.append(("path  " + clip_left(p, width - 6), col.bright()))
+        if it["obs"].strip():
+            out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
+            for para in it["obs"].splitlines():
+                out += [(ln, col.bright()) for ln in (textwrap.wrap(para, width) or [""])]
+        if it["claude"].strip():
+            out += [("", 0), ("Claude", col.dim() | curses.A_BOLD)]
+            out += [(ln, col.text(3)) for ln in textwrap.wrap(it["claude"], width)]
+        return out
+
     def ordered():
         if view_trash:      # soonest-to-be-purged first
             key = lambda i: (i["mod"], i["desc"].lower())
@@ -417,7 +452,30 @@ def run(stdscr):
         idx = rows.index(sel) if sel is not None else 0
         hint = (rows[idx + 1] if idx + 1 < len(rows) else rows[idx - 1] if idx else None) if rows else None
         H, W = stdscr.getmaxyx()
-        list_top, list_bot = 3, H - 4          # visible rows: [list_top, list_bot)
+        # layout: list block (# STAGE PROJECT WITH) + detail box of the selected project,
+        # beside the list when at least ~40 columns remain, otherwise below it
+        wst = 12
+        wi = max(2, len(str(len(rows))))
+        wd = max(14, min(40, max((len(i["desc"]) for i in items), default=0)))
+        wm = max(6, min(20, max((len(i["member"]) for i in items), default=0)))
+        xi = 1
+        xst = xi + wi + 1
+        xd = xst + wst + 1
+        side = W - (xd + wd + 1 + wm + 1) >= 42
+        if not side:                          # narrow: shrink PROJECT, then WITH, to fit
+            avail = W - xd - 2
+            if wd + 1 + wm > avail:
+                wd = max(8, avail - 1 - wm)
+                wm = max(4, avail - 1 - wd)
+        xm = xd + wd + 1
+        lw = xm + wm + 1                      # width of the list block
+        list_top = 3
+        if side:
+            list_bot = H - 4                  # visible rows: [list_top, list_bot)
+            bx, by, bw, bh = lw + 2, 2, W - lw - 3, H - 4 - 2
+        else:
+            list_bot = list_top + max(3, (H - 7) // 2)
+            bx, by, bw, bh = 1, list_bot + 1, W - 2, H - 4 - (list_bot + 1)
         vis = max(1, list_bot - list_top)
         top = max(0, min(top, max(0, len(rows) - vis)))
         if idx < top:
@@ -445,36 +503,11 @@ def run(stdscr):
                 put(stdscr, 0, x + 3, tail, col.text(r))
                 x += 3 + len(tail) + 2
 
-        # column layout
-        wst = 12
-        # column widths adapt to content; OBS keeps at least ~20 columns
-        mins = {"d": 14, "m": 6, "p": 6}
-        w = {"d": max(mins["d"], min(40, max((len(i["desc"]) for i in items), default=0))),
-             "m": max(mins["m"], min(40, max((len(i["member"]) for i in items), default=0))),
-             "p": max(mins["p"], min(40, max((len(i["path"]) for i in items), default=0)))}
-        wi = max(2, len(str(len(rows))))
-        wmod = 21 if view_trash else 17
-        xi = 1
-        xst = xi + wi + 1
-        xd = xst + wst + 1
-        xmod = W - wmod - 1
-        room = xmod - 24 - xd           # space for desc + member + path (+3 gaps, OBS >= 20)
-        while sum(w.values()) > room and any(w[k] > mins[k] for k in w):
-            k = max(w, key=lambda k: w[k] - mins[k])
-            w[k] -= 1
-        wd, wm, wp = w["d"], w["m"], w["p"]
-        xm = xd + wd + 1
-        xp = xm + wm + 1
-        xo = xp + wp + 1
-        wo = max(0, xmod - xo - 1)
         hdr = col.dim() | curses.A_BOLD
         put(stdscr, 2, xi, "#".rjust(wi), hdr)
         put(stdscr, 2, xst, "STAGE", hdr)
         put(stdscr, 2, xd, "PROJECT", hdr)
         put(stdscr, 2, xm, "WITH", hdr)
-        put(stdscr, 2, xp, "PATH", hdr)
-        put(stdscr, 2, xo, "OBS", hdr)
-        put(stdscr, 2, xmod, "TRASHED  LEFT" if view_trash else "LAST MODIFIED", hdr)
         put(stdscr, 1, 0, "─" * (W - 1), col.dim())
         n_trash = sum(1 for i in items if i["rank"] == 0)
         if n_trash and not view_trash:
@@ -494,7 +527,7 @@ def run(stdscr):
             r = it["rank"]
             t = col.text(r, is_sel)
             if is_sel:
-                put(stdscr, y, 0, " " * (W - 1), t)
+                put(stdscr, y, 0, " " * lw, t)
                 put(stdscr, y, 0, "▌", t)
             put(stdscr, y, xi, str(top + n + 1).rjust(wi), col.dim(is_sel))
             put(stdscr, y, xst, clip(sname(r), wst).ljust(wst), t | curses.A_BOLD)
@@ -502,33 +535,32 @@ def run(stdscr):
                 col.bright(is_sel) | curses.A_BOLD)
             put(stdscr, y, xm, clip(it["member"] or "—", wm).ljust(wm),
                 col.bright(is_sel) if it["member"] else col.dim(is_sel))
-            put(stdscr, y, xp, clip_left(it["path"] or "—", wp).ljust(wp),
-                col.bright(is_sel) if it["path"] else col.dim(is_sel))
-            put(stdscr, y, xo, clip(it["obs"], wo), col.dim(is_sel))
-            if view_trash:
-                try:
-                    left = TRASH_DAYS - (datetime.date.today()
-                                         - datetime.date.fromisoformat(it["mod"])).days
-                except ValueError:
-                    left = TRASH_DAYS
-                last = f"{it['mod']}  {max(0, left)}d left"
-            else:
-                last = age_text(it["mod"])
-            put(stdscr, y, xmod, last.ljust(wmod), col.dim(is_sel))
         if len(rows) > vis:
-            put(stdscr, 2, W - 9, f"{idx+1}/{len(rows)}", col.dim())
+            s = f"{idx+1}/{len(rows)}"
+            if lw - len(s) > xm + 5:
+                put(stdscr, 2, lw - len(s), s, col.dim())
 
-        # detail of selected (full OBS)
+        # detail box of the selected project
+        if side:
+            for yy in range(2, H - 3):
+                put(stdscr, yy, lw, "│", col.dim())
+        else:
+            put(stdscr, list_bot, 0, "─" * (W - 1), col.dim())
+        if sel is not None and bw > 10 and bh > 0:
+            lines = detail(sel, bw)
+            for n, (s, a) in enumerate(lines[:bh]):
+                if n == bh - 1 and len(lines) > bh:
+                    s = clip(s, bw - 1) + "…" if len(s) < bw else clip(s, bw)
+                put(stdscr, by + n, bx, clip(s, bw), a)
+
         put(stdscr, H - 3, 0, "─" * (W - 1), col.dim())
         if flash:
             put(stdscr, H - 2, 1, flash, col.dim())
-        elif sel is not None and sel["claude"]:     # bottom line: Claude's status only
-            put(stdscr, H - 2, 1, clip("▸ " + sel["claude"], W - 3), col.text(3))
         if view_trash:
             keys = ("↑↓/jk move · r restore · 1-8 move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
         else:
-            keys = ("↑↓/jk move · Enter go · o terminal · c claude · a add · e edit · ←→/hl · "
+            keys = ("↑↓/jk move · Enter edit · n go · o terminal · c claude · a add · ←→/hl · "
                     "1-8 maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
@@ -587,7 +619,7 @@ def run(stdscr):
                 query, view_trash = "", new["rank"] == 0
                 sel = new
                 save(items)
-        elif k in ("\n", "\r", curses.KEY_ENTER, "o", "c") and sel is not None:
+        elif k in ("n", "o", "c") and sel is not None:
             d, p = proj_dir(sel)
             if not p:
                 flash = "no PATH set for this project"
@@ -600,12 +632,12 @@ def run(stdscr):
                 except OSError as e:
                     flash = f"could not start {TERMINAL}: {e}"
             elif not CD_FILE:
-                flash = f"Enter needs the bash wrapper `projman` to cd · path: {p}"
+                flash = f"n needs the bash wrapper `projman` to cd · path: {p}"
             else:
                 with open(CD_FILE, "w", encoding="utf-8") as f:
                     f.write(d)
                 break
-        elif k == "e" and sel is not None:
+        elif k in ("\n", "\r", curses.KEY_ENTER) and sel is not None:
             new = form(stdscr, col, "Edit project", sel)
             if new:
                 changed = any(new[f] != sel[f] for f in ("desc", "rank", "member", "path", "obs"))
