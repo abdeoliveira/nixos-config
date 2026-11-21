@@ -1,0 +1,3 @@
+# Python bytecode (e.g. from syntax-checking scripts/ with py_compile)
+__pycache__/
+*.pyc

@@ -11,9 +11,10 @@ Each project also carries a "claude" field: a one-line status written only by
 Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
 detail box of the selected project. projman never edits it and re-reads it from disk on save.
 
-Layout: the list shows # STAGE PROJECT WITH; the detail box (right of the list, or below it
+Layout: the list shows # STAGE PROJECT WITH (before PROJECT: • a job is running, ◦ its expected
+end has passed without confirmation; the "job" field is also written only by Claude Code); the detail box (right of the list, or below it
 on narrow terminals) shows the selected project: stage and last modified, WITH, PATH (as
-~/..., omitted when unset), OBS in full and the Claude status.
+~/..., blank when unset), OBS in full and the Claude status.
 
 Enter edits the selected project (form).
 Navigation (rows with a PATH that exists on this machine):
@@ -71,6 +72,25 @@ def new_id():
     return uuid.uuid4().hex[:8]
 
 
+def job_field(j):
+    """Normalise the Claude-owned "job" field: {"what": str, "until": "YYYY-MM-DDTHH:MM"} or None."""
+    if isinstance(j, dict) and j.get("what"):
+        return {"what": str(j["what"]), "until": str(j.get("until", ""))}
+    return None
+
+
+def job_state(it):
+    """None (no job), "run" (expected end still ahead) or "due" (expected end passed, unconfirmed)."""
+    j = it.get("job")
+    if not j:
+        return None
+    try:
+        end = datetime.datetime.fromisoformat(j["until"])
+    except (ValueError, TypeError):
+        return "run"
+    return "run" if datetime.datetime.now() < end else "due"
+
+
 def load(path=None):
     global IDS_ADDED
     try:
@@ -92,6 +112,7 @@ def load(path=None):
             "obs": str(it.get("obs", "")),
             "mod": str(it.get("mod", "")),   # YYYY-MM-DD, "" = unknown
             "claude": str(it.get("claude", "")),   # owned by Claude Code, read-only here
+            "job": job_field(it.get("job")),       # owned by Claude Code, read-only here
         })
     return out
 
@@ -132,8 +153,8 @@ def open_terminal(d, cmd=None):
 
 
 def merge_claude(items):
-    """Copy the "claude" field from the file on disk into items (Claude Code is its only
-    writer, so the disk copy is always the newest). Match by id, else by (desc, path)."""
+    """Copy the "claude" and "job" fields from the file on disk into items (Claude Code is
+    their only writer, so the disk copy is always the newest). Match by id, else by (desc, path)."""
     try:
         with open(DATA_FILE, encoding="utf-8") as f:
             disk = json.load(f)
@@ -141,15 +162,15 @@ def merge_claude(items):
         return
     by_id, by_key = {}, {}
     for d in disk:
+        v = (d.get("claude", ""), job_field(d.get("job")))
         if d.get("id"):
-            by_id[d["id"]] = d.get("claude", "")
+            by_id[d["id"]] = v
         k = (d.get("desc", ""), d.get("path", ""))
-        by_key[k] = None if k in by_key else d.get("claude", "")
+        by_key[k] = None if k in by_key else v
     for it in items:
-        if it["id"] in by_id:
-            it["claude"] = by_id[it["id"]]
-        elif by_key.get((it["desc"], it["path"])) is not None:
-            it["claude"] = by_key[(it["desc"], it["path"])]
+        v = by_id.get(it["id"]) or by_key.get((it["desc"], it["path"]))
+        if v is not None:
+            it["claude"], it["job"] = v
 
 
 def save(items):
@@ -176,6 +197,7 @@ def fold(s):
 
 def matches(it, query):
     hay = fold(" ".join((it["desc"], it["member"], it["path"], it["obs"], it["claude"],
+                         (it.get("job") or {}).get("what", ""),
                          sname(it["rank"]))))
     return all(tok in hay for tok in fold(query).split())
 
@@ -424,7 +446,17 @@ def run(stdscr):
             home, ap = os.path.expanduser("~"), os.path.expanduser(p)
             if ap == home or ap.startswith(home + os.sep):
                 p = "~" + ap[len(home):]
-            out.append(("path  " + clip_left(p, width - 6), col.bright()))
+        out.append(("path  " + clip_left(p, width - 6), col.bright()))
+        js = job_state(it)
+        if js:
+            j = it["job"]
+            try:
+                end = datetime.datetime.fromisoformat(j["until"]).strftime("%d/%m %H:%M")
+            except (ValueError, TypeError):
+                end = j["until"] or "?"
+            tail = f" · ends ~{end}" if js == "run" else f" · was due ~{end}, unconfirmed"
+            out.append((clip("job   " + j["what"] + tail, width),
+                        col.text(3) if js == "run" else col.dim()))
         if it["obs"].strip():
             out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
             for para in it["obs"].splitlines():
@@ -460,7 +492,8 @@ def run(stdscr):
         wm = max(6, min(20, max((len(i["member"]) for i in items), default=0)))
         xi = 1
         xst = xi + wi + 1
-        xd = xst + wst + 1
+        xdot = xst + wst + 1                  # job: "•" running, "◦" expected end passed
+        xd = xdot + 2
         side = W - (xd + wd + 1 + wm + 1) >= 42
         if not side:                          # narrow: shrink PROJECT, then WITH, to fit
             avail = W - xd - 2
@@ -531,6 +564,11 @@ def run(stdscr):
                 put(stdscr, y, 0, "▌", t)
             put(stdscr, y, xi, str(top + n + 1).rjust(wi), col.dim(is_sel))
             put(stdscr, y, xst, clip(sname(r), wst).ljust(wst), t | curses.A_BOLD)
+            js = job_state(it)
+            if js == "run":
+                put(stdscr, y, xdot, "•", col.text(3, is_sel) | curses.A_BOLD)
+            elif js == "due":
+                put(stdscr, y, xdot, "◦", col.dim(is_sel))
             put(stdscr, y, xd, clip(it["desc"], wd).ljust(wd),
                 col.bright(is_sel) | curses.A_BOLD)
             put(stdscr, y, xm, clip(it["member"] or "—", wm).ljust(wm),
@@ -610,7 +648,7 @@ def run(stdscr):
         elif k == "a":
             new = form(stdscr, col, "New project",
                        {"id": new_id(), "desc": "", "rank": 1, "prev": 1, "member": "",
-                        "path": "", "obs": "", "mod": "", "claude": ""})
+                        "path": "", "obs": "", "mod": "", "claude": "", "job": None})
             if new:
                 new["mod"] = today()
                 if new["rank"] == 0:

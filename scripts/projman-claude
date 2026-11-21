@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write Claude Code's one-line project status into ~/.projman.json ("claude" field).
+"""Write Claude Code's project status into ~/.projman.json ("claude" and "job" fields).
 
 Installed by ~/.nixos-config as `projman-claude` (in PATH, via my-scripts) and linked to
 ~/.claude/bin/projman_claude.py (home.file), the path Claude Code is told to use.
@@ -7,13 +7,21 @@ Installed by ~/.nixos-config as `projman-claude` (in PATH, via my-scripts) and l
     projman_claude.py set "<status>" [--dir DIR]   set the status of the project owning DIR
     projman_claude.py get [--dir DIR]              print the current status
     projman_claude.py list                         all projects with a path, and their status
+    projman_claude.py job set "<what>" --until END [--dir DIR]
+                                                   mark a running job (projman shows a dot)
+    projman_claude.py job clear [--dir DIR]        the job finished (confirmed): remove the mark
+    projman_claude.py job get [--dir DIR]          print the current job
+
+END is the expected end: "YYYY-MM-DD HH:MM", "DD/MM HH:MM", "HH:MM" (today, or tomorrow if
+already past) or "+12h" / "+90m" / "+1h30m". projman shows "•" until END and a hollow "◦"
+after it, until the job is cleared.
 
 The project is the entry whose "path" contains DIR (default: current directory), longest
 match wins. Entries without a path are never touched. Only the "claude" field (and a
 missing "id") is written; every other field, the key order and the .bak undo file used by
-projman are left as they are. The date (DD/MM) is prefixed automatically.
+projman are left as they are. The date (DD/MM) is prefixed automatically to the status.
 """
-import json, os, sys, tempfile, datetime, uuid
+import json, os, re, sys, tempfile, datetime, uuid
 
 FILE = os.environ.get("PROJMAN_FILE", os.path.expanduser("~/.projman.json"))
 MAXLEN = 90
@@ -52,18 +60,46 @@ def write(items):
     os.replace(tmp, FILE)
 
 
+def parse_until(s):
+    """Expected end -> "YYYY-MM-DDTHH:MM" (local time)."""
+    now = datetime.datetime.now().replace(second=0, microsecond=0)
+    s = s.strip()
+    m = re.fullmatch(r"\+(?:(\d+)h)?(?:(\d+)m)?", s)
+    if m and (m.group(1) or m.group(2)):
+        end = now + datetime.timedelta(hours=int(m.group(1) or 0), minutes=int(m.group(2) or 0))
+    elif re.fullmatch(r"\d{4}-\d{2}-\d{2}[ T]\d{1,2}:\d{2}", s):
+        end = datetime.datetime.fromisoformat(s.replace(" ", "T"))
+    elif re.fullmatch(r"\d{1,2}/\d{1,2} \d{1,2}:\d{2}", s):
+        dm, hm = s.split()
+        dd, mm = map(int, dm.split("/")); h, mi = map(int, hm.split(":"))
+        end = now.replace(month=mm, day=dd, hour=h, minute=mi)
+    elif re.fullmatch(r"\d{1,2}:\d{2}", s):
+        h, mi = map(int, s.split(":"))
+        end = now.replace(hour=h, minute=mi)
+        if end <= now:
+            end += datetime.timedelta(days=1)
+    else:
+        sys.exit(f"projman_claude: cannot read --until {s!r}")
+    return end.strftime("%Y-%m-%dT%H:%M")
+
+
 def main():
     a = sys.argv[1:]
     d = os.getcwd()
     if "--dir" in a:
         i = a.index("--dir"); d = a[i + 1]; del a[i:i + 2]
-    if not a or a[0] not in ("set", "get", "list"):
+    until = None
+    if "--until" in a:
+        i = a.index("--until"); until = a[i + 1]; del a[i:i + 2]
+    if not a or a[0] not in ("set", "get", "list", "job") or (a[0] == "job" and (len(a) < 2 or a[1] not in ("set", "clear", "get"))):
         sys.exit(__doc__)
     items = load()
     if a[0] == "list":
         for it in items:
             if it.get("path"):
-                print(f"{it.get('desc', '')[:30]:30s}  {it['path'][:40]:40s}  {it.get('claude', '')}")
+                j = it.get("job") or {}
+                job = f"  [job: {j.get('what', '')} until {j.get('until', '')}]" if j else ""
+                print(f"{it.get('desc', '')[:30]:30s}  {it['path'][:40]:40s}  {it.get('claude', '')}{job}")
         return
     it = find(items, d)
     if it is None:
@@ -71,6 +107,26 @@ def main():
         sys.exit(2)
     if a[0] == "get":
         print(f"{it.get('desc', '')}: {it.get('claude', '') or '(empty)'}")
+        return
+    if a[0] == "job":
+        if a[1] == "get":
+            j = it.get("job")
+            print(f"{it.get('desc', '')}: " + (f"{j['what']} (until {j.get('until', '?')})" if j else "(no job)"))
+            return
+        if a[1] == "clear":
+            had = it.pop("job", None)
+            write(items)
+            print(f"{it.get('desc', '')}: job cleared" + ("" if had else " (there was none)"))
+            return
+        what = " ".join(a[2:]).strip().replace("\n", " ")
+        if not what or not until:
+            sys.exit("projman_claude: job set needs a description and --until END")
+        for x in items:
+            if not x.get("id"):
+                x["id"] = uuid.uuid4().hex[:8]
+        it["job"] = {"what": what[:MAXLEN], "until": parse_until(until)}
+        write(items)
+        print(f"{it.get('desc', '')}: job {it['job']['what']} until {it['job']['until']}")
         return
     text = " ".join(a[1:]).strip().replace("\n", " ")
     if not text:
