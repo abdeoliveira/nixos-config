@@ -3,10 +3,13 @@
 
 Stages (maturity):
   0 trash (hidden; deleted for good after $PROJMAN_TRASH_MONTHS months, default 3)
-  1 hold · 2 waiting · 3 running · 4 draft · 5 my review
-  6 team review · 7 submitted · 8 resubmitted
+  1 hold · 2 wait · 3 design · 4 run · 5 draft · 6 my review
+  7 team review · 8 submitted · 9 resubmitted
+  (design = preparation: literature review, choosing the focus, designing the simulations)
 
-Data lives in ~/.projman.json (override with $PROJMAN_FILE).
+Data lives in ~/.projman.json (override with $PROJMAN_FILE). Stages are stored by name
+("stage", and "prev" = stage before trashing), so the numbering can change freely; entries
+from the old numbered format ("rank" 0-8, before "design" existed) are converted on load.
 Each project also carries a "claude" field: a one-line status written only by
 Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
 detail box of the selected project. projman never edits it and re-reads it from disk on save.
@@ -43,10 +46,11 @@ os.environ.setdefault("ESCDELAY", "25")
 DATA_FILE = os.environ.get("PROJMAN_FILE", os.path.expanduser("~/.projman.json"))
 
 # (name, 256-colour fg, 8-colour fallback)
-STAGES = [  # grey = parked; cyan->orange = ball with me; blue/violet = ball elsewhere
+STAGES = [  # grey = parked; cyan, white, green->orange = ball with me; blue/violet = ball elsewhere
     ("hold",         244, curses.COLOR_WHITE),
-    ("waiting",       69, curses.COLOR_BLUE),
-    ("running",       45, curses.COLOR_CYAN),
+    ("wait",          69, curses.COLOR_BLUE),
+    ("design",       123, curses.COLOR_CYAN),
+    ("run",          231, curses.COLOR_WHITE),
     ("draft",        112, curses.COLOR_GREEN),
     ("my review",    220, curses.COLOR_YELLOW),
     ("team review",  208, curses.COLOR_YELLOW),
@@ -54,6 +58,13 @@ STAGES = [  # grey = parked; cyan->orange = ball with me; blue/violet = ball els
     ("resubmitted",  171, curses.COLOR_MAGENTA),
 ]
 N = len(STAGES)
+STAGE_NO = {name: i for i, (name, _, _) in enumerate(STAGES, start=1)}
+STAGE_NO["trash"] = 0
+# earlier stage names -> current ones (files saved before the renaming)
+RENAMED = {"waiting": "wait", "running": "run"}
+# the numbered format used before "design" was added: rank -> stage name
+LEGACY_RANKS = ["trash", "hold", "waiting", "running", "draft", "my review",
+                "team review", "submitted", "resubmitted"]
 # maturity 0 = trash: hidden from the main list, purged automatically after N months
 TRASH_MONTHS = max(1, int(os.environ.get("PROJMAN_TRASH_MONTHS", "3") or 3))
 TRASH_DAYS = TRASH_MONTHS * 30
@@ -61,6 +72,17 @@ TRASH_DAYS = TRASH_MONTHS * 30
 
 def sname(r):
     return "trash" if r == 0 else STAGES[r - 1][0]
+
+
+def stage_of(name, legacy, default):
+    """Stage number from a stored stage name, else from a legacy rank number, else default."""
+    if isinstance(name, str) and RENAMED.get(name, name) in STAGE_NO:
+        return STAGE_NO[RENAMED.get(name, name)]
+    try:
+        n = LEGACY_RANKS[int(legacy)]
+        return STAGE_NO[RENAMED.get(n, n)]
+    except (TypeError, ValueError, IndexError):
+        return default
 SEL_BG = 237  # background of the selected row (256-colour terminals)
 
 
@@ -105,8 +127,9 @@ def load(path=None):
         out.append({
             "id": str(it.get("id") or new_id()),       # stable key (descriptions may repeat)
             "desc": str(it.get("desc", "")),
-            "rank": min(N, max(0, int(it.get("rank", 1)))),
-            "prev": min(N, max(1, int(it.get("prev", 1) or 1))),   # stage before trashing
+            "rank": stage_of(it.get("stage"), it.get("rank"), 1),
+            # stage before trashing: a name now; a legacy number only in old-format entries
+            "prev": max(1, stage_of(it.get("prev"), None if "stage" in it else it.get("prev"), 1)),
             "member": str(it.get("member", "")),
             "path": str(it.get("path", "")),
             "obs": str(it.get("obs", "")),
@@ -183,8 +206,13 @@ def save(items):
             pass
     d = os.path.dirname(os.path.abspath(DATA_FILE))
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".projman-")
+    out = []
+    for it in items:   # stages go to disk by name ("rank" is the in-memory number only)
+        d = {k: v for k, v in it.items() if k not in ("rank", "prev")}
+        d["stage"], d["prev"] = sname(it["rank"]), sname(it["prev"])
+        out.append(d)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
-        json.dump(items, f, ensure_ascii=False, indent=2)
+        json.dump(out, f, ensure_ascii=False, indent=2)
     os.replace(tmp, DATA_FILE)
 
 
@@ -288,22 +316,22 @@ class Colors:
             curses.init_pair(i, fg, -1)                      # normal text
             curses.init_pair(20 + i, fg, SEL_BG if rich else -1)  # selected row
             curses.init_pair(40 + i, 16 if rich else curses.COLOR_BLACK, fg)  # badge
-        curses.init_pair(9, 242 if rich else curses.COLOR_WHITE, -1)           # trash
-        curses.init_pair(29, 248 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
-        curses.init_pair(49, 16 if rich else curses.COLOR_BLACK, 242 if rich else curses.COLOR_WHITE)
+        curses.init_pair(19, 242 if rich else curses.COLOR_WHITE, -1)          # trash
+        curses.init_pair(39, 248 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
+        curses.init_pair(59, 16 if rich else curses.COLOR_BLACK, 242 if rich else curses.COLOR_WHITE)
         curses.init_pair(60, 245 if rich else curses.COLOR_WHITE, -1)          # dim
         curses.init_pair(61, 245 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
         curses.init_pair(62, 252 if rich else curses.COLOR_WHITE, -1)          # bright
         curses.init_pair(63, 252 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
 
     def text(self, rank, sel=False):
-        a = curses.color_pair((20 if sel else 0) + (rank or 9))
+        a = curses.color_pair((20 if sel else 0) + (rank or 19))
         if rank == 0 and not self.rich:
             a |= curses.A_DIM
         return a | (curses.A_BOLD if sel else 0)
 
     def badge(self, rank):
-        return curses.color_pair(40 + (rank or 9)) | curses.A_BOLD
+        return curses.color_pair(40 + (rank or 19)) | curses.A_BOLD
 
     def dim(self, sel=False):
         return curses.color_pair(61 if sel else 60)
@@ -339,7 +367,7 @@ def form(stdscr, col, title, item):
                 put(win, y, fx, f" {r} ", col.badge(r))
                 put(win, y, fx + 4, sname(r), col.text(r) | curses.A_BOLD)
                 if i == f:
-                    put(win, y, fx + 18, "← →  or 0-8  (0 = trash)", col.dim())
+                    put(win, y, fx + 18, f"← →  or 0-{N}  (0 = trash)", col.dim())
             else:
                 text, p = vals[key], pos[key]
                 start = max(0, p - fw + 1)
@@ -380,7 +408,7 @@ def form(stdscr, col, title, item):
                 vals["rank"] = min(N, vals["rank"] + 1)
             elif k in (curses.KEY_LEFT, "-", "h"):
                 vals["rank"] = max(0, vals["rank"] - 1)
-            elif isinstance(k, str) and k in "012345678" and k:
+            elif isinstance(k, str) and k in "0123456789"[:N + 1] and k:
                 vals["rank"] = int(k)
         else:
             t, p = vals[key], pos[key]
@@ -568,7 +596,7 @@ def run(stdscr):
             put(stdscr, y, xst, clip(sname(r), wst).ljust(wst), t | curses.A_BOLD)
             js = job_state(it)
             if js == "run":
-                put(stdscr, y, xdot, "•", col.text(3, is_sel) | curses.A_BOLD)
+                put(stdscr, y, xdot, "•", col.bright(is_sel) | curses.A_BOLD)
             elif js == "due":
                 put(stdscr, y, xdot, "◦", col.dim(is_sel))
             put(stdscr, y, xd, clip(it["desc"], wd).ljust(wd),
@@ -597,11 +625,11 @@ def run(stdscr):
         if flash:
             put(stdscr, H - 2, 1, flash, col.dim())
         if view_trash:
-            keys = ("↑↓/jk move · r restore · 1-8 move to stage · d delete forever · "
+            keys = (f"↑↓/jk move · r restore · 1-{N} move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
         else:
             keys = ("↑↓/jk move · Enter edit · n go · o terminal · c claude · a add · ←→/hl · "
-                    "1-8 maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
+                    f"1-{N} maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
         flash = ""
@@ -697,7 +725,7 @@ def run(stdscr):
                 sel["rank"] -= 1
                 sel["mod"] = today()
                 save(items)
-        elif isinstance(k, str) and k in "012345678" and k and sel is not None:
+        elif isinstance(k, str) and k in "0123456789"[:N + 1] and k and sel is not None:
             r = int(k)
             if r == 0 and sel["rank"] != 0:
                 sel["prev"], sel["rank"], sel["mod"] = sel["rank"], 0, today()
