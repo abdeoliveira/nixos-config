@@ -11,9 +11,9 @@ Each project also carries a "claude" field: a one-line status written only by
 Claude Code (via ~/.claude/bin/projman_claude.py), shown read-only in the
 detail box of the selected project. projman never edits it and re-reads it from disk on save.
 
-Layout: the list shows # STAGE PROJECT WITH (before PROJECT: • a job is running, ◦ its expected
+Layout: the list shows # STAGE PROJECT TEAM (before PROJECT: • a job is running, ◦ its expected
 end has passed without confirmation; the "job" field is also written only by Claude Code); the detail box (right of the list, or below it
-on narrow terminals) shows the selected project: stage and last modified, WITH, PATH (as
+on narrow terminals) shows the selected project: stage and last modified, TEAM, PATH (as
 ~/..., blank when unset), OBS in full and the Claude status.
 
 Enter edits the selected project (form).
@@ -320,7 +320,7 @@ def form(stdscr, col, title, item):
     win = curses.newwin(bh, bw, max(0, (H - bh) // 2), max(0, (W - bw) // 2))
     win.keypad(True)
     labels = [("Description", "desc"), ("Maturity", "rank"),
-              ("Team member", "member"), ("Path", "path"), ("OBS", "obs")]
+              ("Team", "member"), ("Path", "path"), ("OBS", "obs")]
     vals = dict(item)
     pos = {k: len(vals[k]) for k in ("desc", "member", "path", "obs")}
     f = 0
@@ -428,7 +428,7 @@ def run(stdscr):
         flash = f"purged {n_purged} project(s) trashed more than {TRASH_MONTHS} months ago"
 
     def detail(it, width):
-        """Lines (text, attr) of the detail box: name, stage + date, with, path, OBS, Claude."""
+        """Lines (text, attr) of the detail box: name, stage + date, team, path, OBS, Claude."""
         r = it["rank"]
         out = [(it["desc"] or "—", col.bright() | curses.A_BOLD)]
         if r == 0:
@@ -440,7 +440,7 @@ def run(stdscr):
             out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(0)))
         else:
             out.append((f"{sname(r)} · modified {age_text(it['mod'])}", col.text(r) | curses.A_BOLD))
-        out.append((f"with  {it['member'] or '—'}", col.bright() if it["member"] else col.dim()))
+        out.append((f"team  {it['member'] or '—'}", col.bright() if it["member"] else col.dim()))
         p = it["path"].strip()
         if p:
             home, ap = os.path.expanduser("~"), os.path.expanduser(p)
@@ -542,7 +542,7 @@ def run(stdscr):
         put(stdscr, 2, xi, "#".rjust(wi), hdr)
         put(stdscr, 2, xst, "STAGE", hdr)
         put(stdscr, 2, xd, "PROJECT", hdr)
-        put(stdscr, 2, xm, "WITH", hdr)
+        put(stdscr, 2, xm, "TEAM", hdr)
         put(stdscr, 1, 0, "─" * (W - 1), col.dim())
         n_trash = sum(1 for i in items if i["rank"] == 0)
         if n_trash and not view_trash:
