@@ -447,7 +447,14 @@ def run(stdscr):
             if ap == home or ap.startswith(home + os.sep):
                 p = "~" + ap[len(home):]
         out.append(("path  " + clip_left(p, width - 6), col.bright()))
+        if it["obs"].strip():
+            out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
+            for para in it["obs"].splitlines():
+                out += [(ln, col.bright()) for ln in (textwrap.wrap(para, width) or [""])]
         js = job_state(it)
+        if it["claude"].strip() or js:
+            out += [("", 0), ("Claude", col.dim() | curses.A_BOLD)]
+            out += [(ln, col.bright()) for ln in textwrap.wrap(it["claude"], width)]
         if js:
             j = it["job"]
             try:
@@ -455,15 +462,10 @@ def run(stdscr):
             except (ValueError, TypeError):
                 end = j["until"] or "?"
             tail = f" · ends ~{end}" if js == "run" else f" · was due ~{end}, unconfirmed"
-            out.append((clip("job   " + j["what"] + tail, width),
-                        col.text(3) if js == "run" else col.dim()))
-        if it["obs"].strip():
-            out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
-            for para in it["obs"].splitlines():
-                out += [(ln, col.bright()) for ln in (textwrap.wrap(para, width) or [""])]
-        if it["claude"].strip():
-            out += [("", 0), ("Claude", col.dim() | curses.A_BOLD)]
-            out += [(ln, col.text(3)) for ln in textwrap.wrap(it["claude"], width)]
+            tail = " " + tail[1:].replace(" ", "\xa0")   # "· ends ~DD/MM HH:MM" wraps as one piece
+            a = col.bright() if js == "run" else col.dim()
+            for ln in textwrap.wrap("job   " + j["what"] + tail, width, subsequent_indent=" " * 6):
+                out.append((ln.replace("\xa0", " "), a))
         return out
 
     def ordered():
