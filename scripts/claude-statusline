@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Claude Code status line: project folder (~ for $HOME) | model |
+# 5-hour window: time to reset + usage | weekly window: time to reset + usage | context fill.
+#   e.g.  ~/.nixos-config | Opus 5.5 | 2h14m 9% | 3d4h 35% | ctx 31%
+# Claude Code pipes session JSON on stdin after each assistant message.
+# rate_limits appears only after the session's first API response.
+jq -r --argjson now "$(date +%s)" --arg home "$HOME" '
+  def pct(x): if x == null then "–" else "\(x | floor)%" end;
+  def left(t): if t == null or t <= $now then "–"
+               else ((t - $now) / 60 | floor) as $m
+                    | if $m >= 1440 then "\($m / 1440 | floor)d\($m % 1440 / 60 | floor)h"
+                      elif $m >= 60 then "\($m / 60 | floor)h\($m % 60 | tostring | if length < 2 then "0" + . else . end)m"
+                      else "\($m)m" end end;
+  def tilde(p): if p == null then "–"
+                elif p == $home then "~"
+                elif (p | startswith($home + "/")) then "~" + (p | ltrimstr($home))
+                else p end;
+  [ tilde(.workspace.project_dir // .workspace.current_dir // .cwd),
+    .model.display_name,
+    "\(left(.rate_limits.five_hour.resets_at)) \(pct(.rate_limits.five_hour.used_percentage))",
+    "\(left(.rate_limits.seven_day.resets_at)) \(pct(.rate_limits.seven_day.used_percentage))",
+    "ctx \(pct(.context_window.used_percentage))"
+  ] | join(" | ")' 2>/dev/null || echo "Claude"
+exit 0

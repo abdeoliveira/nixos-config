@@ -221,6 +221,7 @@ systemd.user.services.taildrop-receiver = {
     ".config/wallpaper".source = ./wallpapers/wallpaper;
     ".config/cat_installer/ca.pem".source = ./certs/ca.pem;
     ".claude/bin/projman_claude.py".source = ./scripts/projman-claude;   # Claude's projman status helper
+    ".claude/statusline.sh".source = ./scripts/claude-statusline;         # Claude Code status line
     };
 
 }
