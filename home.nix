@@ -142,7 +142,7 @@ programs.neovim = {
       complete -W 'backup restore list prune delete help unlock mount check find check-download /tmp/external-hd/data' restic-gdrive
       #eval "$(direnv hook bash)"      
 
-      # projman: Enter on a project makes projman exit and this shell cd into its PATH
+      # projman: g on a project makes projman exit and this shell cd into its PATH
       projman() {
         local f d
         f=$(mktemp -t projman-cd.XXXXXX) || return

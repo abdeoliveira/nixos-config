@@ -21,10 +21,11 @@ on narrow terminals) shows the selected project: stage and last modified, TEAM, 
 
 Enter edits the selected project (form).
 Navigation (rows with a PATH that exists on this machine):
-  n      go: projman exits and the shell lands in PATH (needs the bash wrapper
+  g      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
   o      open a new terminal in PATH (projman stays open)
   c      open a new terminal in PATH running `claude --continue` (or a fresh `claude`)
+  C      same, but `claude --resume`: pick which past session to resume
 Terminal: $PROJMAN_TERMINAL, default alacritty (needs --working-directory and -e).
 Pure standard library (curses). Run:  python3 projman.py
 """
@@ -161,6 +162,7 @@ BACKUP_FILE = DATA_FILE + ".bak"
 CD_FILE = os.environ.get("PROJMAN_CDFILE", "")          # set by the bash wrapper
 TERMINAL = os.environ.get("PROJMAN_TERMINAL", "alacritty")
 CLAUDE_CMD = "claude --continue || claude; exec bash"
+CLAUDE_RESUME_CMD = "claude --resume; exec bash"
 
 
 def proj_dir(it):
@@ -628,7 +630,7 @@ def run(stdscr):
             keys = (f"↑↓/jk move · r restore · 1-{N} move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
         else:
-            keys = ("↑↓/jk move · Enter edit · n go · o terminal · c claude · a add · ←→/hl · "
+            keys = ("↑↓/jk move · Enter edit · g go · o terminal · c/C claude continue/resume · a add · "
                     f"1-{N} maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
@@ -649,7 +651,7 @@ def run(stdscr):
             sel = rows[min(len(rows) - 1, idx + vis)]
         elif k == curses.KEY_PPAGE and rows:
             sel = rows[max(0, idx - vis)]
-        elif k in (curses.KEY_HOME, "g") and rows:
+        elif k == curses.KEY_HOME and rows:
             sel = rows[0]
         elif k in (curses.KEY_END, "G") and rows:
             sel = rows[-1]
@@ -687,20 +689,20 @@ def run(stdscr):
                 query, view_trash = "", new["rank"] == 0
                 sel = new
                 save(items)
-        elif k in ("n", "o", "c") and sel is not None:
+        elif k in ("g", "o", "c", "C") and sel is not None:
             d, p = proj_dir(sel)
             if not p:
                 flash = "no PATH set for this project"
             elif not d:
                 flash = f"PATH not found on this machine: {p}"
-            elif k in ("o", "c"):
+            elif k in ("o", "c", "C"):
                 try:
-                    open_terminal(d, CLAUDE_CMD if k == "c" else None)
-                    flash = f"opened {'claude' if k == 'c' else 'a terminal'} in {p}"
+                    open_terminal(d, {"c": CLAUDE_CMD, "C": CLAUDE_RESUME_CMD}.get(k))
+                    flash = f"opened {'claude' if k in 'cC' else 'a terminal'} in {p}"
                 except OSError as e:
                     flash = f"could not start {TERMINAL}: {e}"
             elif not CD_FILE:
-                flash = f"n needs the bash wrapper `projman` to cd · path: {p}"
+                flash = f"g needs the bash wrapper `projman` to cd · path: {p}"
             else:
                 with open(CD_FILE, "w", encoding="utf-8") as f:
                     f.write(d)
@@ -714,16 +716,6 @@ def run(stdscr):
                 if new["rank"] == 0 and sel["rank"] != 0:
                     new["prev"] = sel["rank"]
                 sel.update(new)
-                save(items)
-        elif k in (curses.KEY_RIGHT, "l", "+") and sel is not None:
-            if sel["rank"] < N:
-                sel["rank"] += 1
-                sel["mod"] = today()
-                save(items)
-        elif k in (curses.KEY_LEFT, "h", "-") and sel is not None:
-            if sel["rank"] > 1:
-                sel["rank"] -= 1
-                sel["mod"] = today()
                 save(items)
         elif isinstance(k, str) and k in "0123456789"[:N + 1] and k and sel is not None:
             r = int(k)
