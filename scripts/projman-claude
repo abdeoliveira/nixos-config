@@ -24,7 +24,7 @@ projman are left as they are. The date (DD/MM) is prefixed automatically to the 
 import json, os, re, sys, tempfile, datetime, uuid
 
 FILE = os.environ.get("PROJMAN_FILE", os.path.expanduser("~/.projman.json"))
-MAXLEN = 600
+MAXLEN = 1200
 
 
 def norm(p):
