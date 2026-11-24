@@ -142,13 +142,17 @@ programs.neovim = {
       complete -W 'backup restore list prune delete help unlock mount check find check-download /tmp/external-hd/data' restic-gdrive
       #eval "$(direnv hook bash)"      
 
-      # projman: g on a project makes projman exit and this shell cd into its PATH
+      # projman: g on a project makes projman exit and this shell cd into its PATH,
+      # c/C open claude + a terminal in PATH and close this shell (and so its terminal)
       projman() {
         local f d
         f=$(mktemp -t projman-cd.XXXXXX) || return
         PROJMAN_CDFILE="$f" command projman "$@"
         d=$(cat "$f" 2>/dev/null); rm -f "$f"
-        [ -n "$d" ] && cd -- "$d"
+        case $d in
+          exit) exit ;;
+          "cd "*) cd -- "''${d#cd }" ;;
+        esac
       }
 
 # Start Niri on tty1

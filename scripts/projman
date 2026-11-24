@@ -24,8 +24,11 @@ Navigation (rows with a PATH that exists on this machine):
   g      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
   o      open a new terminal in PATH (projman stays open)
-  c      open a new terminal in PATH running `claude --continue` (or a fresh `claude`)
+  c      open two terminals in PATH, one running `claude --continue` (or a fresh `claude`)
+         and a plain one beside it, then close projman and its terminal (the bash
+         wrapper exits its shell; without the wrapper only projman quits)
   C      same, but `claude --resume`: pick which past session to resume
+The wrapper protocol: projman writes "cd <dir>" or "exit" into $PROJMAN_CDFILE.
 Terminal: $PROJMAN_TERMINAL, default alacritty (needs --working-directory and -e).
 Pure standard library (curses). Run:  python3 projman.py
 """
@@ -38,6 +41,7 @@ import sys
 import shutil
 import subprocess
 import tempfile
+import time
 import textwrap
 import unicodedata
 import uuid
@@ -695,17 +699,29 @@ def run(stdscr):
                 flash = "no PATH set for this project"
             elif not d:
                 flash = f"PATH not found on this machine: {p}"
-            elif k in ("o", "c", "C"):
+            elif k == "o":
                 try:
-                    open_terminal(d, {"c": CLAUDE_CMD, "C": CLAUDE_RESUME_CMD}.get(k))
-                    flash = f"opened {'claude' if k in 'cC' else 'a terminal'} in {p}"
+                    open_terminal(d)
+                    flash = f"opened a terminal in {p}"
                 except OSError as e:
                     flash = f"could not start {TERMINAL}: {e}"
+            elif k in ("c", "C"):
+                try:
+                    open_terminal(d, CLAUDE_CMD if k == "c" else CLAUDE_RESUME_CMD)
+                    time.sleep(0.1)               # let claude's window map first
+                    open_terminal(d)
+                except OSError as e:
+                    flash = f"could not start {TERMINAL}: {e}"
+                    continue
+                if CD_FILE:                       # ask the wrapper to close this shell
+                    with open(CD_FILE, "w", encoding="utf-8") as f:
+                        f.write("exit")
+                break
             elif not CD_FILE:
                 flash = f"g needs the bash wrapper `projman` to cd · path: {p}"
             else:
                 with open(CD_FILE, "w", encoding="utf-8") as f:
-                    f.write(d)
+                    f.write("cd " + d)
                 break
         elif k in ("\n", "\r", curses.KEY_ENTER) and sel is not None:
             new = form(stdscr, col, "Edit project", sel)
