@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+"""projman-archive — move a finished project's folder to two archives, or bring it back.
+
+    projman-archive archive PATH [--id ID] [--result FILE]
+    projman-archive restore PATH --hd HDPATH --snapshot SNAP [--id ID] [--result FILE]
+
+archive copies PATH (a folder under $HOME) to
+  1. the external LUKS HD:  /tmp/external-hd/projman-archive/<PATH relative to $HOME>
+  2. a restic snapshot in the restic-gdrive repository, tagged ARCHIVE (never pruned)
+and checks both before deleting the local folder:
+  - HD copy:  rsync --checksum dry run against PATH, must report no difference
+  - restic:   the snapshot is restored into ~/.cache/projman-archive-verify (excluded from
+              the hourly backup) and compared with PATH the same way, then removed
+  - just before deleting, a last quick rsync comparison with the HD copy catches files
+    changed while the checks ran
+The local folder is deleted only after you type its name. Any failed step stops the run
+and leaves PATH untouched.
+
+restore brings PATH back from the HD copy (checked with rsync --checksum), or from the
+restic snapshot (restic restore --verify) when the HD is not mounted. Both archives are kept.
+
+The HD must be mounted first (external-hd-mount mount, needs sudo). The script shares
+restic-gdrive's lock file, so the hourly backup skips while it runs.
+--result FILE: on success, a JSON record of what was done is written there (used by projman).
+"""
+import argparse
+import datetime
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+HOME = os.path.realpath(os.path.expanduser("~"))
+HD_MOUNT = "/tmp/external-hd"
+HD_ROOT = os.path.join(HD_MOUNT, "projman-archive")
+VERIFY_ROOT = os.path.join(HOME, ".cache", "projman-archive-verify")
+LOCKFILE = "/tmp/lock-restic-backups-gdrive"          # same lock as restic-gdrive
+RESTIC_ENV = {
+    "RESTIC_PASSWORD_FILE": "/run/agenix/restic-pw",
+    "RESTIC_REPOSITORY": "rclone:ufop:restic",
+}
+RSYNC = ["rsync", "-aH"]
+
+
+class Fail(Exception):
+    pass
+
+
+def say(msg):
+    print(f"\033[1m==> {msg}\033[0m", flush=True)
+
+
+def human(n):
+    for u in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or u == "TB":
+            return f"{n:.1f} {u}" if u != "B" else f"{n} B"
+        n /= 1024
+
+
+def run(cmd, **kw):
+    env = dict(os.environ, **RESTIC_ENV) if cmd[0] == "restic" else None
+    r = subprocess.run(cmd, env=env, **kw)
+    if r.returncode != 0:
+        raise Fail(f"command failed ({r.returncode}): {' '.join(cmd)}")
+    return r
+
+
+def tree_size(path):
+    """(bytes, files) of a folder, symlinks not followed."""
+    size = files = 0
+    for root, dirs, names in os.walk(path):
+        for n in names:
+            try:
+                size += os.lstat(os.path.join(root, n)).st_size
+            except OSError:
+                pass
+            files += 1
+    return size, files
+
+
+def differences(src, dst, checksum=True):
+    """Itemized rsync differences making dst equal to src (empty list = identical)."""
+    cmd = RSYNC + ["--dry-run", "--itemize-changes", "--delete"]
+    if checksum:
+        cmd.append("--checksum")
+    r = run(cmd + [src.rstrip("/") + "/", dst.rstrip("/") + "/"],
+            capture_output=True, text=True)
+    return [ln for ln in r.stdout.splitlines() if ln.strip()]
+
+
+def require_identical(src, dst, what, checksum=True):
+    diff = differences(src, dst, checksum)
+    if diff:
+        print("\n".join(diff[:20]) + (f"\n… and {len(diff) - 20} more" if len(diff) > 20 else ""))
+        raise Fail(f"{what} differs from {src} ({len(diff)} item(s), listed above)")
+    say(f"{what}: identical to {src}" + (" (checksums)" if checksum else ""))
+
+
+def free_bytes(path):
+    st = os.statvfs(path)
+    return st.f_bavail * st.f_frsize
+
+
+def project_path(p):
+    """Absolute, symlink-free path of a project folder under $HOME (never $HOME itself)."""
+    ap = os.path.realpath(os.path.expanduser(p))
+    rel = os.path.relpath(ap, HOME)
+    if rel == "." or rel.startswith(".."):
+        raise Fail(f"{ap} is not a folder inside {HOME}")
+    if rel.split(os.sep)[0] in (".cache",):
+        raise Fail(f"{ap} is inside ~/.cache, which projman-archive uses for checks")
+    return ap, rel
+
+
+class ResticLock:
+    """Hold restic-gdrive's lock file (so the hourly backup and pruning skip meanwhile)."""
+
+    def __enter__(self):
+        try:
+            fd = os.open(LOCKFILE, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            raise Fail(f"another restic run holds {LOCKFILE} (the hourly backup?). "
+                       "Wait for it to finish and try again.")
+        os.write(fd, f"projman-archive {os.getpid()}\n".encode())
+        os.close(fd)
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            os.remove(LOCKFILE)
+        except OSError:
+            pass
+
+
+def check_restic():
+    say("checking access to the restic repository")
+    run(["restic", "cat", "config"], stdout=subprocess.DEVNULL)
+
+
+def snapshot_paths_ok(snap):
+    """Return the paths stored in a snapshot."""
+    r = run(["restic", "snapshots", "--json", snap], capture_output=True, text=True)
+    data = json.loads(r.stdout)
+    if not data:
+        raise Fail(f"snapshot {snap} not found")
+    return data[0].get("paths", [])
+
+
+def write_result(path, rec):
+    if path:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(rec, f)
+
+
+# ---------------------------------------------------------------- archive
+def archive(a):
+    src, rel = project_path(a.path)
+    if not os.path.isdir(src) or os.path.islink(os.path.expanduser(a.path)):
+        raise Fail(f"{src} is not a folder (or PATH is a symlink)")
+    if not os.path.ismount(HD_MOUNT):
+        raise Fail(f"the external HD is not mounted at {HD_MOUNT} (run: external-hd-mount mount)")
+    if not (os.path.isdir(HD_ROOT) and os.access(HD_ROOT, os.W_OK)):
+        raise Fail(f"{HD_ROOT} is missing or not writable. The HD's top folder belongs to root, "
+                   f"so create it once with:  sudo install -d -o $USER -g users {HD_ROOT}")
+    dest = os.path.join(HD_ROOT, rel)
+    part = dest + ".partial"
+    vdir = os.path.join(VERIFY_ROOT, a.id or "noid")
+
+    say(f"measuring {src}")
+    size, files = tree_size(src)
+    print(f"    {human(size)} in {files} files")
+    if free_bytes(HD_MOUNT) < size * 1.05 + (2 << 30):
+        raise Fail(f"not enough free space on the HD ({human(free_bytes(HD_MOUNT))} free)")
+    os.makedirs(VERIFY_ROOT, exist_ok=True)
+    if free_bytes(VERIFY_ROOT) < size * 1.05 + (5 << 30):
+        raise Fail(f"not enough free space in {VERIFY_ROOT} for the restore check")
+
+    with ResticLock():
+        check_restic()
+
+        # 1. HD copy (into .partial; an earlier copy of the same project is updated in place)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        if os.path.exists(dest) and not os.path.exists(part):
+            say(f"an earlier archive copy exists, updating it: {dest}")
+            os.rename(dest, part)
+        say(f"copying to the HD: {part}")
+        run(RSYNC + ["--delete", "--info=progress2", src + "/", part + "/"])
+        say("checking the HD copy")
+        require_identical(src, part, "HD copy")
+        os.rename(part, dest)
+
+        # 2. restic snapshot
+        say("restic snapshot (tags ARCHIVE" + (f", projman-{a.id}" if a.id else "") + ")")
+        tags = ["--tag", "ARCHIVE"] + (["--tag", f"projman-{a.id}"] if a.id else [])
+        r = run(["restic", "backup", "--json"] + tags + [src], capture_output=True, text=True)
+        snap = None
+        for ln in r.stdout.splitlines():
+            try:
+                m = json.loads(ln)
+            except ValueError:
+                continue
+            if m.get("message_type") == "summary":
+                snap = m.get("snapshot_id")
+                print(f"    {m.get('files_new', 0)} new, {m.get('files_changed', 0)} changed, "
+                      f"{m.get('files_unmodified', 0)} unchanged files · "
+                      f"{human(m.get('data_added', 0))} uploaded")
+        if not snap:
+            raise Fail("restic backup gave no snapshot id")
+        short = snap[:8]
+        say(f"snapshot {short}")
+
+        # 3. restore the snapshot and compare
+        if os.path.exists(vdir):
+            shutil.rmtree(vdir)
+        say(f"restoring snapshot {short} into {vdir} to check it")
+        try:
+            run(["restic", "restore", snap, "--target", vdir])
+            require_identical(src, vdir + src, "restic snapshot")
+        finally:
+            shutil.rmtree(vdir, ignore_errors=True)
+
+    # 4. confirmation, last quick check, delete
+    print()
+    print(f"  project folder : {src}  ({human(size)}, {files} files)")
+    print(f"  HD copy        : {dest}")
+    print(f"  restic         : snapshot {short} (tag ARCHIVE)")
+    name = os.path.basename(src)
+    ans = input(f"\nBoth copies are checked. Type '{name}' to delete the local folder: ").strip()
+    if ans != name:
+        say("not deleted. The two archive copies stay, the project stays as it was.")
+        return 1
+    require_identical(src, dest, "HD copy (last check, sizes and times)", checksum=False)
+    write_result(a.result, {"date": datetime.date.today().isoformat(), "orig": a.path,
+                            "hd": dest, "snapshot": snap, "size": size, "files": files})
+    say(f"deleting {src}")
+    try:
+        shutil.rmtree(src)
+    except OSError as e:
+        raise Fail(f"deleting {src} stopped halfway ({e}). Both archive copies are "
+                   "complete; remove the rest of the folder by hand.")
+    say("archived")
+    return 0
+
+
+# ---------------------------------------------------------------- restore
+def restore(a):
+    dst, rel = project_path(a.path)
+    if os.path.lexists(dst):
+        raise Fail(f"{dst} already exists; restore will not overwrite it")
+    part = dst + ".partial"
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.ismount(HD_MOUNT) and a.hd and os.path.isdir(a.hd):
+        say(f"restoring from the HD: {a.hd}")
+        run(RSYNC + ["--delete", "--info=progress2", a.hd.rstrip("/") + "/", part + "/"])
+        require_identical(a.hd, part, "restored folder")
+        os.rename(part, dst)
+    else:
+        if not a.snapshot:
+            raise Fail("the HD copy is not available and no restic snapshot is known")
+        ans = input(f"The HD copy is not available. Restore from restic snapshot "
+                    f"{a.snapshot[:8]}? (y/N) ").strip().lower()
+        if ans != "y":
+            say("nothing restored")
+            return 1
+        vdir = os.path.join(VERIFY_ROOT, (a.id or "noid") + "-restore")
+        with ResticLock():
+            check_restic()
+            paths = snapshot_paths_ok(a.snapshot)
+            if len(paths) != 1:
+                raise Fail(f"snapshot {a.snapshot[:8]} holds {paths}, expected one folder")
+            if os.path.exists(vdir):
+                shutil.rmtree(vdir)
+            say(f"restoring snapshot {a.snapshot[:8]} (restic --verify)")
+            try:
+                run(["restic", "restore", a.snapshot, "--verify", "--target", vdir])
+                got = vdir + paths[0]
+                if os.stat(got).st_dev == os.stat(os.path.dirname(dst)).st_dev:
+                    os.rename(got, dst)
+                else:
+                    run(RSYNC + ["--info=progress2", got + "/", part + "/"])
+                    require_identical(got, part, "restored folder")
+                    os.rename(part, dst)
+            finally:
+                shutil.rmtree(vdir, ignore_errors=True)
+    write_result(a.result, {"restored": a.path})
+    say(f"restored {dst} (the archive copies are kept)")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0],
+                                 formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 epilog="\n".join(__doc__.split("\n")[1:]))
+    ap.add_argument("action", choices=("archive", "restore"))
+    ap.add_argument("path")
+    ap.add_argument("--id", default="")
+    ap.add_argument("--hd", default="")
+    ap.add_argument("--snapshot", default="")
+    ap.add_argument("--result", default="")
+    a = ap.parse_args()
+    try:
+        return archive(a) if a.action == "archive" else restore(a)
+    except Fail as e:
+        print(f"\033[1;31mprojman-archive: {e}\033[0m", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        print("\nprojman-archive: interrupted, nothing was deleted. A partial copy "
+              "(.partial) is reused by the next run.", file=sys.stderr)
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

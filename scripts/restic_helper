@@ -71,6 +71,12 @@ elif [[ $1 == 'check-download' ]];then
 		restic check --read-data-subset=$2
 	fi
 elif [[ $1 == 'prune' ]];then
+	# ARCHIVE snapshots (projman-archive) hold the only copy besides the external HD
+	# of projects deleted locally: never prune them.
+	if [[ $2 == '' || $2 == ARCHIVE ]];then
+		echo "ABORTING: prune needs a tag, and ARCHIVE snapshots are never pruned." >&2
+		rm $LOCKFILE; exit 1
+	fi
 	restic forget \
 		--group-by tags \
 		--keep-daily 7 \

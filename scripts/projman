@@ -22,6 +22,9 @@ on narrow terminals) shows the selected project: stage and last modified, TEAM, 
 ~/..., blank when unset), OBS in full and the Claude status.
 
 Enter edits the selected project (form). p shows/hides finished projects.
+A on a finished project archives it: projman-archive copies PATH to the external HD and to
+a restic snapshot, checks both, and deletes the local folder after you type its name. PATH
+then points at the HD copy and the project is locked as finished. A again restores it.
 Navigation (rows with a PATH that exists on this machine):
   g      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
@@ -128,6 +131,13 @@ def job_state(it):
     return "run" if datetime.datetime.now() < end else "due"
 
 
+def archived_field(a):
+    """{"date", "orig", "hd", "snapshot", "size", "files"} of an archived project, or None."""
+    if isinstance(a, dict) and a.get("hd") and a.get("orig"):
+        return a
+    return None
+
+
 def untrash(r):
     """A stage to restore to: trash itself is not one (falls back to hold)."""
     return 0 if r == TRASH else r
@@ -156,6 +166,7 @@ def load(path=None):
             "mod": str(it.get("mod", "")),   # YYYY-MM-DD, "" = unknown
             "claude": str(it.get("claude", "")),   # owned by Claude Code, read-only here
             "job": job_field(it.get("job")),       # owned by Claude Code, read-only here
+            "archived": archived_field(it.get("archived")),   # set by A (projman-archive)
         })
     return out
 
@@ -182,6 +193,7 @@ CD_FILE = os.environ.get("PROJMAN_CDFILE", "")          # set by the bash wrappe
 TERMINAL = os.environ.get("PROJMAN_TERMINAL", "alacritty")
 CLAUDE_CMD = "claude --continue || claude; exec bash"
 CLAUDE_RESUME_CMD = "claude --resume; exec bash"
+ARCHIVER = os.environ.get("PROJMAN_ARCHIVER", "projman-archive")
 
 
 def proj_dir(it):
@@ -194,6 +206,65 @@ def open_terminal(d, cmd=None):
     args = [TERMINAL, "--working-directory", d] + (["-e", "bash", "-c", cmd] if cmd else [])
     subprocess.Popen(args, cwd=d, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def human(n):
+    for u in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or u == "TB":
+            return f"{n:.1f} {u}" if u != "B" else f"{n} B"
+        n /= 1024
+
+
+def run_archiver(stdscr, it):
+    """Leave curses, run projman-archive (archive or restore) in the terminal, come back.
+    Returns (record written by the script or None, message for the flash line)."""
+    a = it.get("archived")
+    fd, res = tempfile.mkstemp(prefix="projman-archive-", suffix=".json")
+    os.close(fd)
+    if a:
+        cmd = [ARCHIVER, "restore", a["orig"], "--hd", a["hd"],
+               "--snapshot", a.get("snapshot", ""), "--id", it["id"], "--result", res]
+    else:
+        cmd = [ARCHIVER, "archive", it["path"].strip(), "--id", it["id"], "--result", res]
+    curses.def_prog_mode()
+    curses.endwin()
+    msg = ""
+    try:
+        print(f"\n{it['desc']}\n")
+        try:
+            proc = subprocess.Popen(cmd)
+        except OSError as e:
+            msg = f"could not start {ARCHIVER}: {e}"
+            proc = None
+        while proc is not None:
+            try:
+                rc = proc.wait()
+                break
+            except KeyboardInterrupt:       # Ctrl-C belongs to the script; wait for it
+                continue
+        try:
+            input("\n[Enter] back to projman ")
+        except (KeyboardInterrupt, EOFError):
+            pass
+    finally:
+        curses.reset_prog_mode()
+        stdscr.clear()
+        stdscr.refresh()
+    rec = None
+    try:
+        with open(res, encoding="utf-8") as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        pass
+    finally:
+        try:
+            os.remove(res)
+        except OSError:
+            pass
+    if not msg:
+        msg = ("restored" if a else "archived") if rec else \
+            f"{'restore' if a else 'archive'} not done (exit {rc}); nothing changed"
+    return rec, msg
 
 
 def merge_claude(items):
@@ -229,7 +300,8 @@ def save(items):
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".projman-")
     out = []
     for it in items:   # stages go to disk by name ("rank" is the in-memory number only)
-        d = {k: v for k, v in it.items() if k not in ("rank", "prev")}
+        d = {k: v for k, v in it.items()
+             if k not in ("rank", "prev") and not (k == "archived" and v is None)}
         d["stage"], d["prev"] = sname(it["rank"]), sname(it["prev"])
         out.append(d)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -247,7 +319,7 @@ def fold(s):
 def matches(it, query):
     hay = fold(" ".join((it["desc"], it["member"], it["path"], it["obs"], it["claude"],
                          (it.get("job") or {}).get("what", ""),
-                         sname(it["rank"]))))
+                         sname(it["rank"]), "archived" if it.get("archived") else "")))
     return all(tok in hay for tok in fold(query).split())
 
 
@@ -502,6 +574,13 @@ def run(stdscr):
             if ap == home or ap.startswith(home + os.sep):
                 p = "~" + ap[len(home):]
         out.append(("path  " + clip_left(p, width - 6), col.bright()))
+        a = it.get("archived")
+        if a:
+            hd_ok = os.path.isdir(a["hd"])
+            out.append((f"arch  {a.get('date', '?')} · restic {str(a.get('snapshot', ''))[:8]} · "
+                        f"{human(a.get('size', 0))}" + ("" if hd_ok else " · HD not mounted"),
+                        col.text(r) | curses.A_BOLD))
+            out.append(("was   " + clip_left(a["orig"], width - 6), col.dim()))
         if it["obs"].strip():
             out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
             for para in it["obs"].splitlines():
@@ -624,7 +703,8 @@ def run(stdscr):
                 put(stdscr, y, 0, " " * lw, t)
                 put(stdscr, y, 0, "▌", t)
             put(stdscr, y, xi, str(top + n + 1).rjust(wi), col.dim(is_sel))
-            put(stdscr, y, xst, clip(sname(r), wst).ljust(wst), t | curses.A_BOLD)
+            label = "archived" if it.get("archived") else sname(r)
+            put(stdscr, y, xst, clip(label, wst).ljust(wst), t | curses.A_BOLD)
             js = job_state(it)
             if js == "run":
                 put(stdscr, y, xdot, "•", col.bright(is_sel) | curses.A_BOLD)
@@ -660,7 +740,7 @@ def run(stdscr):
                     "u undo · / filter · t/Esc back · q quit")
         else:
             keys = ("↑↓/jk move · Enter edit · g go · o terminal · c/C claude continue/resume · a add · "
-                    f"0-{N - 1} maturity ({N - 1} finished) · p show finished · d trash · u undo · "
+                    f"0-{N - 1} maturity ({N - 1} finished) · p show finished · A archive · d trash · u undo · "
                     "/ filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
@@ -728,6 +808,8 @@ def run(stdscr):
             d, p = proj_dir(sel)
             if not p:
                 flash = "no PATH set for this project"
+            elif not d and sel.get("archived"):
+                flash = f"archived on the external HD, which is not mounted: {p}"
             elif not d:
                 flash = f"PATH not found on this machine: {p}"
             elif k == "o":
@@ -762,21 +844,42 @@ def run(stdscr):
                     new["mod"] = today()
                 if new["rank"] == TRASH and sel["rank"] != TRASH:
                     new["prev"] = sel["rank"]
+                if sel.get("archived") and (new["rank"] != sel["rank"] or new["path"] != sel["path"]):
+                    new["rank"], new["path"] = sel["rank"], sel["path"]
+                    flash = "archived: stage and PATH stay as they are (A restores the project)"
                 if new["rank"] == FINISHED and sel["rank"] != FINISHED and not show_finished:
                     flash = "finished: hidden from the list (p shows finished)"
                 sel.update(new)
                 save(items)
         elif isinstance(k, str) and len(k) == 1 and k in "0123456789"[:N] and sel is not None:
             r = int(k)
-            if sel["rank"] != r:
+            if sel.get("archived") and r != sel["rank"]:
+                flash = "archived: restore it first (A)"
+            elif sel["rank"] != r:
                 sel["rank"], sel["mod"] = r, today()
                 if r == FINISHED and not show_finished and not view_trash:
                     flash = "finished: hidden from the list (p shows finished · u to undo)"
                 save(items)
+        elif k == "A" and sel is not None and not view_trash:
+            d, p = proj_dir(sel)
+            if not sel.get("archived") and sel["rank"] != FINISHED:
+                flash = "only finished projects are archived (9 marks finished)"
+            elif not sel.get("archived") and not d:
+                flash = f"PATH not found on this machine: {p}" if p else "no PATH set for this project"
+            else:
+                rec, flash = run_archiver(stdscr, sel)
+                if rec and sel.get("archived"):
+                    sel["path"], sel["archived"], sel["mod"] = sel["archived"]["orig"], None, today()
+                    save(items)
+                elif rec:
+                    sel["path"], sel["archived"], sel["mod"] = rec["hd"], rec, today()
+                    save(items)
         elif k == "r" and view_trash and sel is not None:
             sel["rank"], sel["mod"] = sel["prev"], today()
             flash = f"restored to {sname(sel['rank'])}"
             save(items)
+        elif k == "d" and sel is not None and not view_trash and sel.get("archived"):
+            flash = "archived projects are not trashed: restore first (A)"
         elif k == "d" and sel is not None and not view_trash:
             sel["prev"], sel["rank"], sel["mod"] = sel["rank"], TRASH, today()
             flash = "moved to trash (t to view · u to undo)"
