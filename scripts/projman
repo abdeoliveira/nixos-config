@@ -102,6 +102,7 @@ def stage_of(name, legacy, default):
     except (TypeError, ValueError, IndexError):
         return default
 SEL_BG = 237  # background of the selected row (256-colour terminals)
+ARCHIVED_FG = 160  # red: archived projects (STAGE column and detail box)
 
 
 # ---------------------------------------------------------------- storage
@@ -412,6 +413,8 @@ class Colors:
         curses.init_pair(19, 242 if rich else curses.COLOR_WHITE, -1)          # trash
         curses.init_pair(39, 248 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
         curses.init_pair(59, 16 if rich else curses.COLOR_BLACK, 242 if rich else curses.COLOR_WHITE)
+        curses.init_pair(18, ARCHIVED_FG if rich else curses.COLOR_RED, -1)    # archived
+        curses.init_pair(38, ARCHIVED_FG if rich else curses.COLOR_RED, SEL_BG if rich else -1)
         curses.init_pair(60, 245 if rich else curses.COLOR_WHITE, -1)          # dim
         curses.init_pair(61, 245 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
         curses.init_pair(62, 252 if rich else curses.COLOR_WHITE, -1)          # bright
@@ -430,6 +433,9 @@ class Colors:
 
     def badge(self, rank):
         return curses.color_pair(40 + self._pair(rank)) | curses.A_BOLD
+
+    def archived(self, sel=False):
+        return curses.color_pair(38 if sel else 18) | (curses.A_BOLD if sel else 0)
 
     def dim(self, sel=False):
         return curses.color_pair(61 if sel else 60)
@@ -566,7 +572,8 @@ def run(stdscr):
                 left = TRASH_DAYS
             out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(TRASH)))
         else:
-            out.append((f"{sname(r)} · modified {age_text(it['mod'])}", col.text(r) | curses.A_BOLD))
+            out.append((f"{sname(r)} · modified {age_text(it['mod'])}",
+                        (col.archived() if it.get("archived") else col.text(r)) | curses.A_BOLD))
         out.append((f"team  {it['member'] or '—'}", col.bright() if it["member"] else col.dim()))
         p = it["path"].strip()
         if p:
@@ -579,7 +586,7 @@ def run(stdscr):
             hd_ok = os.path.isdir(a["hd"])
             out.append((f"arch  {a.get('date', '?')} · restic {str(a.get('snapshot', ''))[:8]} · "
                         f"{human(a.get('size', 0))}" + ("" if hd_ok else " · HD not mounted"),
-                        col.text(r) | curses.A_BOLD))
+                        col.archived() | curses.A_BOLD))
             out.append(("was   " + clip_left(a["orig"], width - 6), col.dim()))
         if it["obs"].strip():
             out += [("", 0), ("OBS", col.dim() | curses.A_BOLD)]
@@ -698,7 +705,7 @@ def run(stdscr):
             y = list_top + n
             is_sel = it is sel
             r = it["rank"]
-            t = col.text(r, is_sel)
+            t = col.archived(is_sel) if it.get("archived") else col.text(r, is_sel)
             if is_sel:
                 put(stdscr, y, 0, " " * lw, t)
                 put(stdscr, y, 0, "▌", t)
