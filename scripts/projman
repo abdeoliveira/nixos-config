@@ -7,7 +7,9 @@ Stages (maturity), set with the digit keys:
   (design = preparation: literature review, choosing the focus, designing the simulations;
    finished = done for good, published or not: hidden from the list until p shows it)
 Trash has no digit: d trashes (hidden; deleted for good after $PROJMAN_TRASH_MONTHS months,
-default 3), t shows the trash.
+default 3), t shows the trash. Deleting for good (d in the trash, or the automatic purge)
+never touches folders and is refused while the project's PATH still exists on disk:
+delete the folder by hand first.
 
 Data lives in ~/.projman.json (override with $PROJMAN_FILE). Stages are stored by name
 ("stage", and "prev" = stage before trashing), so the numbering can change freely; entries
@@ -175,8 +177,9 @@ def load(path=None):
 
 
 def purge(items):
-    """Drop trash older than TRASH_DAYS. Returns (kept, n_purged, changed)."""
-    keep, n, changed = [], 0, False
+    """Drop trash older than TRASH_DAYS, except entries whose PATH still exists on disk
+    (the folder is deleted by hand first). Returns (kept, n_purged, n_held, changed)."""
+    keep, n, held, changed = [], 0, 0, False
     for it in items:
         if it["rank"] == TRASH:
             try:
@@ -184,11 +187,13 @@ def purge(items):
             except ValueError:
                 it["mod"], changed = datetime.date.today().isoformat(), True   # start its clock
                 age = 0
-            if age >= TRASH_DAYS:
+            if age >= TRASH_DAYS and proj_dir(it)[0]:
+                held += 1
+            elif age >= TRASH_DAYS:
                 n += 1
                 continue
         keep.append(it)
-    return keep, n, changed
+    return keep, n, held, changed
 
 
 BACKUP_FILE = DATA_FILE + ".bak"
@@ -557,11 +562,14 @@ def run(stdscr):
     hint = None      # row to select if the selected one leaves the view
     top = 0
     flash = ""
-    items[:], n_purged, changed = purge(items)
+    items[:], n_purged, n_held, changed = purge(items)
     if n_purged or changed or IDS_ADDED:
         save(items)
     if n_purged:
         flash = f"purged {n_purged} project(s) trashed more than {TRASH_MONTHS} months ago"
+    if n_held:
+        flash = (flash + " · " if flash else "") + \
+            f"{n_held} expired trash project(s) kept: their PATH still exists (t to see)"
 
     def detail(it, width):
         """Lines (text, attr) of the detail box: name, stage + date, team, path, OBS, Claude."""
@@ -574,6 +582,9 @@ def run(stdscr):
             except ValueError:
                 left = TRASH_DAYS
             out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(TRASH)))
+            if proj_dir(it)[0]:
+                out.append(("PATH still exists: kept until you delete the folder by hand",
+                            col.bright() | curses.A_BOLD))
         else:
             out.append((f"{sname(r)} · modified {age_text(it['mod'])}",
                         (col.archived() if it.get("archived") else col.text(r)) | curses.A_BOLD))
@@ -894,6 +905,8 @@ def run(stdscr):
             sel["prev"], sel["rank"], sel["mod"] = sel["rank"], TRASH, today()
             flash = "moved to trash (t to view · u to undo)"
             save(items)
+        elif k == "d" and sel is not None and proj_dir(sel)[0]:
+            flash = f"PATH still exists: {proj_dir(sel)[1]} · delete the folder by hand first"
         elif k == "d" and sel is not None:
             put(stdscr, H - 2, 1, " " * (W - 2))
             put(stdscr, H - 2, 1, f"Delete forever “{clip(sel['desc'], 40)}”? (y/N)",
