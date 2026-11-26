@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """projman — a tiny colourful TUI to track research projects by maturity.
 
-Stages (maturity):
-  0 trash (hidden; deleted for good after $PROJMAN_TRASH_MONTHS months, default 3)
-  1 hold · 2 wait · 3 design · 4 run · 5 draft · 6 my review
-  7 team review · 8 submitted · 9 resubmitted
-  (design = preparation: literature review, choosing the focus, designing the simulations)
+Stages (maturity), set with the digit keys:
+  0 hold · 1 wait · 2 design · 3 run · 4 draft · 5 my review
+  6 team review · 7 submitted · 8 resubmitted · 9 finished
+  (design = preparation: literature review, choosing the focus, designing the simulations;
+   finished = done for good, published or not: hidden from the list until p shows it)
+Trash has no digit: d trashes (hidden; deleted for good after $PROJMAN_TRASH_MONTHS months,
+default 3), t shows the trash.
 
 Data lives in ~/.projman.json (override with $PROJMAN_FILE). Stages are stored by name
 ("stage", and "prev" = stage before trashing), so the numbering can change freely; entries
@@ -19,7 +21,7 @@ end has passed without confirmation; the "job" field is also written only by Cla
 on narrow terminals) shows the selected project: stage and last modified, TEAM, PATH (as
 ~/..., blank when unset), OBS in full and the Claude status.
 
-Enter edits the selected project (form).
+Enter edits the selected project (form). p shows/hides finished projects.
 Navigation (rows with a PATH that exists on this machine):
   g      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
@@ -61,22 +63,30 @@ STAGES = [  # grey = parked; cyan, white, green->orange = ball with me; blue/vio
     ("team review",  208, curses.COLOR_YELLOW),
     ("submitted",     99, curses.COLOR_MAGENTA),
     ("resubmitted",  171, curses.COLOR_MAGENTA),
+    ("finished",      72, curses.COLOR_GREEN),
 ]
-N = len(STAGES)
-STAGE_NO = {name: i for i, (name, _, _) in enumerate(STAGES, start=1)}
-STAGE_NO["trash"] = 0
+N = len(STAGES)          # stages are numbered 0 .. N-1 (the digit keys)
+FINISHED = N - 1
+TRASH = -1               # in-memory marker for trash (no digit, no place on the scale)
+STAGE_NO = {name: i for i, (name, _, _) in enumerate(STAGES)}
+STAGE_NO["trash"] = TRASH
 # earlier stage names -> current ones (files saved before the renaming)
 RENAMED = {"waiting": "wait", "running": "run"}
 # the numbered format used before "design" was added: rank -> stage name
 LEGACY_RANKS = ["trash", "hold", "waiting", "running", "draft", "my review",
                 "team review", "submitted", "resubmitted"]
-# maturity 0 = trash: hidden from the main list, purged automatically after N months
+# trash: hidden from the main list, purged automatically after N months
 TRASH_MONTHS = max(1, int(os.environ.get("PROJMAN_TRASH_MONTHS", "3") or 3))
 TRASH_DAYS = TRASH_MONTHS * 30
 
 
 def sname(r):
-    return "trash" if r == 0 else STAGES[r - 1][0]
+    return "trash" if r == TRASH else STAGES[r][0]
+
+
+def blabel(r):
+    """Text of a stage badge: the digit, or × for trash."""
+    return "×" if r == TRASH else str(r)
 
 
 def stage_of(name, legacy, default):
@@ -118,6 +128,11 @@ def job_state(it):
     return "run" if datetime.datetime.now() < end else "due"
 
 
+def untrash(r):
+    """A stage to restore to: trash itself is not one (falls back to hold)."""
+    return 0 if r == TRASH else r
+
+
 def load(path=None):
     global IDS_ADDED
     try:
@@ -132,9 +147,9 @@ def load(path=None):
         out.append({
             "id": str(it.get("id") or new_id()),       # stable key (descriptions may repeat)
             "desc": str(it.get("desc", "")),
-            "rank": stage_of(it.get("stage"), it.get("rank"), 1),
+            "rank": stage_of(it.get("stage"), it.get("rank"), 0),
             # stage before trashing: a name now; a legacy number only in old-format entries
-            "prev": max(1, stage_of(it.get("prev"), None if "stage" in it else it.get("prev"), 1)),
+            "prev": untrash(stage_of(it.get("prev"), None if "stage" in it else it.get("prev"), 0)),
             "member": str(it.get("member", "")),
             "path": str(it.get("path", "")),
             "obs": str(it.get("obs", "")),
@@ -149,7 +164,7 @@ def purge(items):
     """Drop trash older than TRASH_DAYS. Returns (kept, n_purged, changed)."""
     keep, n, changed = [], 0, False
     for it in items:
-        if it["rank"] == 0:
+        if it["rank"] == TRASH:
             try:
                 age = (datetime.date.today() - datetime.date.fromisoformat(it["mod"])).days
             except ValueError:
@@ -317,7 +332,7 @@ class Colors:
             pass
         rich = curses.COLORS >= 256
         self.rich = rich
-        for i, (_, c256, c8) in enumerate(STAGES, start=1):
+        for i, (_, c256, c8) in enumerate(STAGES, start=1):   # pair i = stage i-1
             fg = c256 if rich else c8
             curses.init_pair(i, fg, -1)                      # normal text
             curses.init_pair(20 + i, fg, SEL_BG if rich else -1)  # selected row
@@ -330,14 +345,19 @@ class Colors:
         curses.init_pair(62, 252 if rich else curses.COLOR_WHITE, -1)          # bright
         curses.init_pair(63, 252 if rich else curses.COLOR_WHITE, SEL_BG if rich else -1)
 
+    @staticmethod
+    def _pair(rank):
+        """Colour-pair offset: stage r uses pairs r+1, 20+r+1, 40+r+1; trash uses 19, 39, 59."""
+        return 19 if rank == TRASH else rank + 1
+
     def text(self, rank, sel=False):
-        a = curses.color_pair((20 if sel else 0) + (rank or 19))
-        if rank == 0 and not self.rich:
+        a = curses.color_pair((20 if sel else 0) + self._pair(rank))
+        if rank == TRASH and not self.rich:
             a |= curses.A_DIM
         return a | (curses.A_BOLD if sel else 0)
 
     def badge(self, rank):
-        return curses.color_pair(40 + (rank or 19)) | curses.A_BOLD
+        return curses.color_pair(40 + self._pair(rank)) | curses.A_BOLD
 
     def dim(self, sel=False):
         return curses.color_pair(61 if sel else 60)
@@ -370,10 +390,10 @@ def form(stdscr, col, title, item):
             put(win, y, 3, lab, col.bright() | (curses.A_BOLD if i == f else 0))
             if key == "rank":
                 r = vals["rank"]
-                put(win, y, fx, f" {r} ", col.badge(r))
+                put(win, y, fx, f" {blabel(r)} ", col.badge(r))
                 put(win, y, fx + 4, sname(r), col.text(r) | curses.A_BOLD)
                 if i == f:
-                    put(win, y, fx + 18, f"← →  or 0-{N}  (0 = trash)", col.dim())
+                    put(win, y, fx + 18, f"← →  or 0-{N - 1}  (← below 0 = trash)", col.dim())
             else:
                 text, p = vals[key], pos[key]
                 start = max(0, p - fw + 1)
@@ -411,10 +431,10 @@ def form(stdscr, col, title, item):
             f = (f - 1) % len(labels)
         elif key == "rank":
             if k in (curses.KEY_RIGHT, "+", "l"):
-                vals["rank"] = min(N, vals["rank"] + 1)
+                vals["rank"] = min(N - 1, vals["rank"] + 1)
             elif k in (curses.KEY_LEFT, "-", "h"):
-                vals["rank"] = max(0, vals["rank"] - 1)
-            elif isinstance(k, str) and k in "0123456789"[:N + 1] and k:
+                vals["rank"] = max(TRASH, vals["rank"] - 1)
+            elif isinstance(k, str) and len(k) == 1 and k in "0123456789"[:N]:
                 vals["rank"] = int(k)
         else:
             t, p = vals[key], pos[key]
@@ -452,6 +472,7 @@ def run(stdscr):
     by_age = False   # False: by maturity · True: oldest-touched first
     query = ""       # active filter ("/" to set, Esc to clear)
     view_trash = False
+    show_finished = False   # finished projects are hidden until p
     hint = None      # row to select if the selected one leaves the view
     top = 0
     flash = ""
@@ -465,13 +486,13 @@ def run(stdscr):
         """Lines (text, attr) of the detail box: name, stage + date, team, path, OBS, Claude."""
         r = it["rank"]
         out = [(it["desc"] or "—", col.bright() | curses.A_BOLD)]
-        if r == 0:
+        if r == TRASH:
             try:
                 left = TRASH_DAYS - (datetime.date.today()
                                      - datetime.date.fromisoformat(it["mod"])).days
             except ValueError:
                 left = TRASH_DAYS
-            out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(0)))
+            out.append((f"trash · trashed {it['mod'] or '—'} · {max(0, left)}d left", col.text(TRASH)))
         else:
             out.append((f"{sname(r)} · modified {age_text(it['mod'])}", col.text(r) | curses.A_BOLD))
         out.append((f"team  {it['member'] or '—'}", col.bright() if it["member"] else col.dim()))
@@ -509,7 +530,8 @@ def run(stdscr):
             key = lambda i: (i["mod"] or "0000-00-00", i["rank"], i["desc"].lower())
         else:
             key = lambda i: (i["rank"], i["desc"].lower())
-        pool = [i for i in items if (i["rank"] == 0) == view_trash]
+        pool = [i for i in items if (i["rank"] == TRASH) == view_trash
+                and (view_trash or show_finished or i["rank"] != FINISHED)]
         shown = [i for i in pool if matches(i, query)] if query else pool
         return sorted(shown, key=key, reverse=descending)
 
@@ -556,19 +578,19 @@ def run(stdscr):
         # title + stage legend with counts
         put(stdscr, 0, 1, "projman", col.bright() | curses.A_BOLD)
         if view_trash:
-            put(stdscr, 0, 10, " 0 ", col.badge(0))
-            put(stdscr, 0, 13, " trash", col.text(0) | curses.A_BOLD)
+            put(stdscr, 0, 10, f" {blabel(TRASH)} ", col.badge(TRASH))
+            put(stdscr, 0, 13, " trash", col.text(TRASH) | curses.A_BOLD)
             put(stdscr, 0, 21, clip(
                 f"permanently deleted {TRASH_MONTHS} months after trashing", W - 22), col.dim())
         else:
-            full = sum(3 + len(f" {STAGES[r-1][0]}") + 2 for r in range(1, N + 1))
+            full = sum(3 + len(f" {STAGES[r][0]}") + 2 for r in range(N))
             named = 10 + full <= W
             x = 10
-            for r in range(1, N + 1):
-                tail = f" {STAGES[r-1][0]}" if named else ""
+            for r in range(N):
+                tail = f" {STAGES[r][0]}" if named else ""
                 if x + 3 + len(tail) >= W:
                     break
-                put(stdscr, 0, x, f" {r} ", col.badge(r))
+                put(stdscr, 0, x, f" {blabel(r)} ", col.badge(r))
                 put(stdscr, 0, x + 3, tail, col.text(r))
                 x += 3 + len(tail) + 2
 
@@ -578,10 +600,13 @@ def run(stdscr):
         put(stdscr, 2, xd, "PROJECT", hdr)
         put(stdscr, 2, xm, "TEAM", hdr)
         put(stdscr, 1, 0, "─" * (W - 1), col.dim())
-        n_trash = sum(1 for i in items if i["rank"] == 0)
-        if n_trash and not view_trash:
-            lab = f" trash: {n_trash}  (t) "
-            put(stdscr, 1, W - len(lab) - 2, lab, col.dim())
+        n_trash = sum(1 for i in items if i["rank"] == TRASH)
+        n_fin = sum(1 for i in items if i["rank"] == FINISHED)
+        if not view_trash:
+            lab = (f" finished: {n_fin} {'shown' if show_finished else 'hidden'} (p) " if n_fin else "") \
+                + (f" trash: {n_trash}  (t) " if n_trash else "")
+            if lab:
+                put(stdscr, 1, W - len(lab) - 2, lab, col.dim())
         if query:
             put(stdscr, 1, 2, clip(f" filter: {query}  ({len(rows)}/{len(items)})  Esc clears ", W - 4),
                 col.bright() | curses.A_BOLD)
@@ -631,11 +656,12 @@ def run(stdscr):
         if flash:
             put(stdscr, H - 2, 1, flash, col.dim())
         if view_trash:
-            keys = (f"↑↓/jk move · r restore · 1-{N} move to stage · d delete forever · "
+            keys = (f"↑↓/jk move · r restore · 0-{N - 1} move to stage · d delete forever · "
                     "u undo · / filter · t/Esc back · q quit")
         else:
             keys = ("↑↓/jk move · Enter edit · g go · o terminal · c/C claude continue/resume · a add · "
-                    f"1-{N} maturity · d trash · u undo · / filter · s flip · m age · t trash · q quit")
+                    f"0-{N - 1} maturity ({N - 1} finished) · p show finished · d trash · u undo · "
+                    "/ filter · s flip · m age · t trash · q quit")
         put(stdscr, H - 1, 1, clip(keys, W - 2), col.dim())
         stdscr.refresh()
         flash = ""
@@ -673,6 +699,9 @@ def run(stdscr):
             view_trash, sel = False, None
         elif k == "t":
             view_trash, query, sel = not view_trash, "", None
+        elif k == "p" and not view_trash:
+            show_finished = not show_finished
+            flash = "finished projects shown" if show_finished else "finished projects hidden"
         elif k == "u":
             prev = load(BACKUP_FILE)
             if os.path.exists(BACKUP_FILE):
@@ -683,14 +712,16 @@ def run(stdscr):
                 flash = "undone (press u again to redo)"
         elif k == "a":
             new = form(stdscr, col, "New project",
-                       {"id": new_id(), "desc": "", "rank": 1, "prev": 1, "member": "",
+                       {"id": new_id(), "desc": "", "rank": 0, "prev": 0, "member": "",
                         "path": "", "obs": "", "mod": "", "claude": "", "job": None})
             if new:
                 new["mod"] = today()
-                if new["rank"] == 0:
-                    new["prev"] = 1
+                if new["rank"] == TRASH:
+                    new["prev"] = 0
                 items.append(new)
-                query, view_trash = "", new["rank"] == 0
+                query, view_trash = "", new["rank"] == TRASH
+                if new["rank"] == FINISHED:
+                    show_finished = True
                 sel = new
                 save(items)
         elif k in ("g", "o", "c", "C") and sel is not None:
@@ -727,27 +758,27 @@ def run(stdscr):
             new = form(stdscr, col, "Edit project", sel)
             if new:
                 changed = any(new[f] != sel[f] for f in ("desc", "rank", "member", "path", "obs"))
-                if changed and not (sel["rank"] == 0 and new["rank"] == 0):  # editing trash keeps its clock
+                if changed and not (sel["rank"] == TRASH and new["rank"] == TRASH):  # editing trash keeps its clock
                     new["mod"] = today()
-                if new["rank"] == 0 and sel["rank"] != 0:
+                if new["rank"] == TRASH and sel["rank"] != TRASH:
                     new["prev"] = sel["rank"]
+                if new["rank"] == FINISHED and sel["rank"] != FINISHED and not show_finished:
+                    flash = "finished: hidden from the list (p shows finished)"
                 sel.update(new)
                 save(items)
-        elif isinstance(k, str) and k in "0123456789"[:N + 1] and k and sel is not None:
+        elif isinstance(k, str) and len(k) == 1 and k in "0123456789"[:N] and sel is not None:
             r = int(k)
-            if r == 0 and sel["rank"] != 0:
-                sel["prev"], sel["rank"], sel["mod"] = sel["rank"], 0, today()
-                flash = "moved to trash (t to view · u to undo)"
-                save(items)
-            elif r != 0 and sel["rank"] != r:
+            if sel["rank"] != r:
                 sel["rank"], sel["mod"] = r, today()
+                if r == FINISHED and not show_finished and not view_trash:
+                    flash = "finished: hidden from the list (p shows finished · u to undo)"
                 save(items)
         elif k == "r" and view_trash and sel is not None:
             sel["rank"], sel["mod"] = sel["prev"], today()
             flash = f"restored to {sname(sel['rank'])}"
             save(items)
         elif k == "d" and sel is not None and not view_trash:
-            sel["prev"], sel["rank"], sel["mod"] = sel["rank"], 0, today()
+            sel["prev"], sel["rank"], sel["mod"] = sel["rank"], TRASH, today()
             flash = "moved to trash (t to view · u to undo)"
             save(items)
         elif k == "d" and sel is not None:
