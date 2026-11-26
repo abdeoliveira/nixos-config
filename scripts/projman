@@ -23,8 +23,10 @@ on narrow terminals) shows the selected project: stage and last modified, TEAM, 
 
 Enter edits the selected project (form). p shows/hides finished projects.
 A on a finished project archives it: projman-archive copies PATH to the external HD and to
-a restic snapshot, checks both, and deletes the local folder after you type its name. PATH
-then points at the HD copy and the project is locked as finished. A again restores it.
+a restic snapshot, checks both against a SHA-256 manifest of every file (kept next to the
+HD copy), and deletes the local folder after you type its name. PATH then points at the HD
+copy and the project is locked as finished. A again restores it, checking the restored
+files against the manifest and offering restic when the HD copy is damaged or missing.
 Navigation (rows with a PATH that exists on this machine):
   g      go: projman exits and the shell lands in PATH (needs the bash wrapper
          function `projman`, which sets $PROJMAN_CDFILE and cd's afterwards)
@@ -224,7 +226,8 @@ def run_archiver(stdscr, it):
     os.close(fd)
     if a:
         cmd = [ARCHIVER, "restore", a["orig"], "--hd", a["hd"],
-               "--snapshot", a.get("snapshot", ""), "--id", it["id"], "--result", res]
+               "--snapshot", a.get("snapshot", ""), "--manifest-sha256", a.get("manifest_sha256", ""),
+               "--id", it["id"], "--result", res]
     else:
         cmd = [ARCHIVER, "archive", it["path"].strip(), "--id", it["id"], "--result", res]
     curses.def_prog_mode()

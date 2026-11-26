@@ -2,22 +2,31 @@
 """projman-archive — move a finished project's folder to two archives, or bring it back.
 
     projman-archive archive PATH [--id ID] [--result FILE]
-    projman-archive restore PATH --hd HDPATH --snapshot SNAP [--id ID] [--result FILE]
+    projman-archive restore PATH --hd HDPATH --snapshot SNAP [--manifest-sha256 H]
+                                 [--id ID] [--result FILE]
 
 archive copies PATH (a folder under $HOME) to
   1. the external LUKS HD:  /tmp/external-hd/projman-archive/<PATH relative to $HOME>
   2. a restic snapshot in the restic-gdrive repository, tagged ARCHIVE (never pruned)
-and checks both before deleting the local folder:
-  - HD copy:  rsync --checksum dry run against PATH, must report no difference
+First it writes down the SHA-256 of every file in PATH (the manifest). Both copies are then
+checked against it before the local folder is deleted:
+  - HD copy:  every file's SHA-256 against the manifest, and an rsync dry run against PATH
+              for the file list, sizes, times, permissions and links
   - restic:   the snapshot is restored into ~/.cache/projman-archive-verify (excluded from
-              the hourly backup) and compared with PATH the same way, then removed
+              the hourly backup) and checked the same way, then removed
   - just before deleting, a last quick rsync comparison with the HD copy catches files
     changed while the checks ran
+The manifest is kept next to the HD copy as <folder>.sha256, in sha256sum format, so it can
+also be checked by hand:  cd <HD copy> && sha256sum --quiet -c ../<folder>.sha256
+projman records the manifest's own SHA-256, so a damaged manifest is noticed too.
 The local folder is deleted only after you type its name. Any failed step stops the run
 and leaves PATH untouched.
 
-restore brings PATH back from the HD copy (checked with rsync --checksum), or from the
-restic snapshot (restic restore --verify) when the HD is not mounted. Both archives are kept.
+restore brings PATH back from the HD copy and checks every restored file against the
+manifest, so damage that happened on the HD since archiving is caught. If files differ (or
+the manifest itself is damaged), the partial copy is removed and restic is offered instead.
+When the HD is not mounted, restore uses the restic snapshot (restic restore --verify).
+Both archives are kept.
 
 The HD must be mounted first (external-hd-mount mount, needs sudo). The script shares
 restic-gdrive's lock file, so the hourly backup skips while it runs.
@@ -25,11 +34,13 @@ restic-gdrive's lock file, so the hourly backup skips while it runs.
 """
 import argparse
 import datetime
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 
 HOME = os.path.realpath(os.path.expanduser("~"))
 HD_MOUNT = "/tmp/external-hd"
@@ -41,6 +52,7 @@ RESTIC_ENV = {
     "RESTIC_REPOSITORY": "rclone:ufop:restic",
 }
 RSYNC = ["rsync", "-aH"]
+META = "file list, sizes, times, permissions, links"
 
 
 class Fail(Exception):
@@ -66,10 +78,14 @@ def run(cmd, **kw):
     return r
 
 
+def walk_error(e):
+    raise Fail(f"cannot read {e.filename}: {e.strerror}")
+
+
 def tree_size(path):
-    """(bytes, files) of a folder, symlinks not followed."""
+    """(bytes, entries) of a folder, symlinks not followed."""
     size = files = 0
-    for root, dirs, names in os.walk(path):
+    for root, dirs, names in os.walk(path, onerror=walk_error):
         for n in names:
             try:
                 size += os.lstat(os.path.join(root, n)).st_size
@@ -77,6 +93,11 @@ def tree_size(path):
                 pass
             files += 1
     return size, files
+
+
+def show_list(items, n=20):
+    print("\n".join("    " + s for s in items[:n])
+          + (f"\n    … and {len(items) - n} more" if len(items) > n else ""))
 
 
 def differences(src, dst, checksum=True):
@@ -92,11 +113,123 @@ def differences(src, dst, checksum=True):
 def require_identical(src, dst, what, checksum=True):
     diff = differences(src, dst, checksum)
     if diff:
-        print("\n".join(diff[:20]) + (f"\n… and {len(diff) - 20} more" if len(diff) > 20 else ""))
+        show_list(diff)
         raise Fail(f"{what} differs from {src} ({len(diff)} item(s), listed above)")
-    say(f"{what}: identical to {src}" + (" (checksums)" if checksum else ""))
+    say(f"{what}: identical to {src} (" + ("checksums" if checksum else META) + ")")
 
 
+# ---------------------------------------------------------------- manifest
+def file_sha256(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        while True:
+            b = f.read(1 << 20)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
+
+def hash_tree(root, label):
+    """{path relative to root: sha256} of every regular file (symlinks are not followed;
+    their targets are compared by rsync)."""
+    out, nbytes, t0, last = {}, 0, time.time(), 0.0
+    for d, dirs, names in os.walk(root, onerror=walk_error):
+        dirs.sort()
+        for n in sorted(names):
+            p = os.path.join(d, n)
+            if os.path.islink(p) or not os.path.isfile(p):
+                continue
+            out[os.path.relpath(p, root)] = file_sha256(p)
+            nbytes += os.lstat(p).st_size
+            if time.time() - last > 0.5:
+                last = time.time()
+                print(f"\r    {label}: {len(out)} files, {human(nbytes)}", end="", flush=True)
+    print(f"\r    {label}: {len(out)} files, {human(nbytes)} ({time.time() - t0:.0f} s)   ")
+    return out
+
+
+def _esc(name):
+    """sha256sum's escaping: names with \\ or newlines get a leading backslash on the line."""
+    if any(c in name for c in "\\\n\r"):
+        return "\\", name.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r")
+    return "", name
+
+
+def _unesc(name):
+    out, i = [], 0
+    while i < len(name):
+        if name[i] == "\\" and i + 1 < len(name):
+            out.append({"\\": "\\", "n": "\n", "r": "\r"}.get(name[i + 1], name[i + 1]))
+            i += 2
+        else:
+            out.append(name[i])
+            i += 1
+    return "".join(out)
+
+
+def write_manifest(path, entries):
+    """Write the manifest atomically; returns its own SHA-256."""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8", errors="surrogateescape", newline="\n") as f:
+        for rel in sorted(entries):
+            pre, n = _esc(rel)
+            f.write(f"{pre}{entries[rel]}  {n}\n")
+    os.replace(tmp, path)
+    return file_sha256(path)
+
+
+def read_manifest(path):
+    out = {}
+    with open(path, encoding="utf-8", errors="surrogateescape", newline="\n") as f:
+        for ln in f:
+            ln = ln.rstrip("\n")
+            if not ln:
+                continue
+            esc = ln.startswith("\\")
+            if esc:
+                ln = ln[1:]
+            h, sep, n = ln[:64], ln[64:66], ln[66:]
+            if len(h) != 64 or sep != "  " or not n:
+                raise Fail(f"malformed line in {path}")
+            out[_unesc(n) if esc else n] = h
+    return out
+
+
+def manifest_problems(root, entries, label):
+    """Files under root that are missing, extra, or differ from the manifest."""
+    got = hash_tree(root, label)
+    missing = sorted(set(entries) - set(got))
+    extra = sorted(set(got) - set(entries))
+    changed = sorted(k for k in set(entries) & set(got) if entries[k] != got[k])
+    return ([f"missing  {k}" for k in missing] + [f"extra    {k}" for k in extra]
+            + [f"differs  {k}" for k in changed])
+
+
+def require_manifest(root, entries, what):
+    bad = manifest_problems(root, entries, f"checking {what}")
+    if bad:
+        show_list(bad)
+        raise Fail(f"{what}: {len(bad)} file(s) do not match the manifest (listed above)")
+    say(f"{what}: all {len(entries)} files match the manifest (SHA-256)")
+
+
+def manifest_path(hd):
+    return hd.rstrip("/") + ".sha256"
+
+
+def load_manifest(hd, expected):
+    """(entries, None), or (None, reason) when there is no usable manifest."""
+    mp = manifest_path(hd)
+    if not os.path.isfile(mp):
+        return None, f"there is no manifest at {mp}"
+    if expected and file_sha256(mp) != expected:
+        return None, (f"the manifest {mp} is damaged (its SHA-256 differs from the one "
+                      "projman recorded at archive time)")
+    return read_manifest(mp), None
+
+
+# ---------------------------------------------------------------- common
 def free_bytes(path):
     st = os.statvfs(path)
     return st.f_bavail * st.f_frsize
@@ -138,8 +271,8 @@ def check_restic():
     run(["restic", "cat", "config"], stdout=subprocess.DEVNULL)
 
 
-def snapshot_paths_ok(snap):
-    """Return the paths stored in a snapshot."""
+def snapshot_paths(snap):
+    """The paths stored in a snapshot."""
     r = run(["restic", "snapshots", "--json", snap], capture_output=True, text=True)
     data = json.loads(r.stdout)
     if not data:
@@ -165,6 +298,7 @@ def archive(a):
                    f"so create it once with:  sudo install -d -o $USER -g users {HD_ROOT}")
     dest = os.path.join(HD_ROOT, rel)
     part = dest + ".partial"
+    mpath = manifest_path(dest)
     vdir = os.path.join(VERIFY_ROOT, a.id or "noid")
 
     say(f"measuring {src}")
@@ -179,16 +313,26 @@ def archive(a):
     with ResticLock():
         check_restic()
 
+        # 0. the manifest: SHA-256 of every file, the reference for every check below
+        say("SHA-256 of every project file (the manifest)")
+        man = hash_tree(src, "hashing")
+
         # 1. HD copy (into .partial; an earlier copy of the same project is updated in place)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         if os.path.exists(dest) and not os.path.exists(part):
             say(f"an earlier archive copy exists, updating it: {dest}")
             os.rename(dest, part)
-        say(f"copying to the HD: {part}")
-        run(RSYNC + ["--delete", "--info=progress2", src + "/", part + "/"])
+        # updating an earlier copy: compare contents, not just sizes and times, so files
+        # damaged on the HD since then are rewritten (a fresh .partial costs nothing extra)
+        update = ["--checksum"] if os.path.isdir(part) else []
+        say(f"copying to the HD: {part}" + (" (comparing contents)" if update else ""))
+        run(RSYNC + update + ["--delete", "--info=progress2", src + "/", part + "/"])
         say("checking the HD copy")
-        require_identical(src, part, "HD copy")
+        require_identical(src, part, "HD copy", checksum=False)
+        require_manifest(part, man, "HD copy")
         os.rename(part, dest)
+        msha = write_manifest(mpath, man)
+        say(f"manifest written: {mpath}")
 
         # 2. restic snapshot
         say("restic snapshot (tags ARCHIVE" + (f", projman-{a.id}" if a.id else "") + ")")
@@ -210,13 +354,14 @@ def archive(a):
         short = snap[:8]
         say(f"snapshot {short}")
 
-        # 3. restore the snapshot and compare
+        # 3. restore the snapshot and check it
         if os.path.exists(vdir):
             shutil.rmtree(vdir)
         say(f"restoring snapshot {short} into {vdir} to check it")
         try:
             run(["restic", "restore", snap, "--target", vdir])
-            require_identical(src, vdir + src, "restic snapshot")
+            require_identical(src, vdir + src, "restic snapshot", checksum=False)
+            require_manifest(vdir + src, man, "restic snapshot")
         finally:
             shutil.rmtree(vdir, ignore_errors=True)
 
@@ -224,15 +369,17 @@ def archive(a):
     print()
     print(f"  project folder : {src}  ({human(size)}, {files} files)")
     print(f"  HD copy        : {dest}")
+    print(f"  manifest       : {mpath}")
     print(f"  restic         : snapshot {short} (tag ARCHIVE)")
     name = os.path.basename(src)
     ans = input(f"\nBoth copies are checked. Type '{name}' to delete the local folder: ").strip()
     if ans != name:
         say("not deleted. The two archive copies stay, the project stays as it was.")
         return 1
-    require_identical(src, dest, "HD copy (last check, sizes and times)", checksum=False)
+    require_identical(src, dest, "HD copy (last check)", checksum=False)
     write_result(a.result, {"date": datetime.date.today().isoformat(), "orig": a.path,
-                            "hd": dest, "snapshot": snap, "size": size, "files": files})
+                            "hd": dest, "snapshot": snap, "size": size, "files": files,
+                            "manifest": mpath, "manifest_sha256": msha})
     say(f"deleting {src}")
     try:
         shutil.rmtree(src)
@@ -250,40 +397,64 @@ def restore(a):
         raise Fail(f"{dst} already exists; restore will not overwrite it")
     part = dst + ".partial"
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if os.path.ismount(HD_MOUNT) and a.hd and os.path.isdir(a.hd):
-        say(f"restoring from the HD: {a.hd}")
-        run(RSYNC + ["--delete", "--info=progress2", a.hd.rstrip("/") + "/", part + "/"])
-        require_identical(a.hd, part, "restored folder")
-        os.rename(part, dst)
-    else:
-        if not a.snapshot:
-            raise Fail("the HD copy is not available and no restic snapshot is known")
-        ans = input(f"The HD copy is not available. Restore from restic snapshot "
-                    f"{a.snapshot[:8]}? (y/N) ").strip().lower()
-        if ans != "y":
-            say("nothing restored")
-            return 1
-        vdir = os.path.join(VERIFY_ROOT, (a.id or "noid") + "-restore")
-        with ResticLock():
-            check_restic()
-            paths = snapshot_paths_ok(a.snapshot)
-            if len(paths) != 1:
-                raise Fail(f"snapshot {a.snapshot[:8]} holds {paths}, expected one folder")
-            if os.path.exists(vdir):
-                shutil.rmtree(vdir)
-            say(f"restoring snapshot {a.snapshot[:8]} (restic --verify)")
-            try:
-                run(["restic", "restore", a.snapshot, "--verify", "--target", vdir])
-                got = vdir + paths[0]
-                if os.stat(got).st_dev == os.stat(os.path.dirname(dst)).st_dev:
-                    os.rename(got, dst)
-                else:
-                    run(RSYNC + ["--info=progress2", got + "/", part + "/"])
-                    require_identical(got, part, "restored folder")
-                    os.rename(part, dst)
-            finally:
-                shutil.rmtree(vdir, ignore_errors=True)
-    write_result(a.result, {"restored": a.path})
+    if not (os.path.ismount(HD_MOUNT) and a.hd and os.path.isdir(a.hd)):
+        return restore_restic(a, dst, part, None, "The HD copy is not available.")
+
+    man, why = load_manifest(a.hd, a.manifest_sha256)
+    if man is None and a.manifest_sha256:      # a manifest was recorded but cannot be used
+        return restore_restic(a, dst, part, None, f"Cannot check the HD copy: {why}.")
+    if man is None:
+        say(f"{why}; the restored folder is checked against the HD copy only")
+    say(f"restoring from the HD: {a.hd}")
+    run(RSYNC + ["--delete", "--info=progress2", a.hd.rstrip("/") + "/", part + "/"])
+    require_identical(a.hd, part, "restored folder", checksum=man is None)
+    if man is not None:
+        bad = manifest_problems(part, man, "checking the restored files")
+        if bad:
+            show_list(bad)
+            shutil.rmtree(part, ignore_errors=True)
+            return restore_restic(
+                a, dst, part, man,
+                f"The HD copy is damaged: {len(bad)} file(s) differ from the manifest written "
+                f"at archive time (listed above). The HD copy is left as it is.")
+        say(f"restored folder: all {len(man)} files match the manifest (SHA-256)")
+    os.rename(part, dst)
+    write_result(a.result, {"restored": a.path, "from": "hd"})
+    say(f"restored {dst} (the archive copies are kept)")
+    return 0
+
+
+def restore_restic(a, dst, part, man, reason):
+    """Restore from the restic snapshot, after asking. man: manifest to check against, if any."""
+    if not a.snapshot:
+        raise Fail(f"{reason} No restic snapshot is known either.")
+    ans = input(f"{reason}\nRestore from restic snapshot {a.snapshot[:8]} instead? (y/N) ")
+    if ans.strip().lower() != "y":
+        say("nothing restored")
+        return 1
+    vdir = os.path.join(VERIFY_ROOT, (a.id or "noid") + "-restore")
+    with ResticLock():
+        check_restic()
+        paths = snapshot_paths(a.snapshot)
+        if len(paths) != 1:
+            raise Fail(f"snapshot {a.snapshot[:8]} holds {paths}, expected one folder")
+        if os.path.exists(vdir):
+            shutil.rmtree(vdir)
+        say(f"restoring snapshot {a.snapshot[:8]} (restic --verify)")
+        try:
+            run(["restic", "restore", a.snapshot, "--verify", "--target", vdir])
+            got = vdir + paths[0]
+            if man is not None:
+                require_manifest(got, man, "restic restore")
+            if os.stat(got).st_dev == os.stat(os.path.dirname(dst)).st_dev:
+                os.rename(got, dst)
+            else:
+                run(RSYNC + ["--info=progress2", got + "/", part + "/"])
+                require_identical(got, part, "restored folder")
+                os.rename(part, dst)
+        finally:
+            shutil.rmtree(vdir, ignore_errors=True)
+    write_result(a.result, {"restored": a.path, "from": "restic"})
     say(f"restored {dst} (the archive copies are kept)")
     return 0
 
@@ -297,6 +468,7 @@ def main():
     ap.add_argument("--id", default="")
     ap.add_argument("--hd", default="")
     ap.add_argument("--snapshot", default="")
+    ap.add_argument("--manifest-sha256", default="")
     ap.add_argument("--result", default="")
     a = ap.parse_args()
     try:
